@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raj Kavadia - Senior Android and Flutter Developer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+    word-spacing: normal;
+    letter-spacing: normal;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 32px;
+  }
+
+  h1 {
+    font-size: 2em;
+    font-weight: 700;
+    letter-spacing: normal;
+    margin-bottom: 2px;
+  }
+
+  .header-title {
+    font-size: 1em;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+
+  .header-contacts {
+    font-size: 0.9em;
+    border-bottom: 1px solid #000;
+    padding-bottom: 5px;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .header-contacts a { color: #000; text-decoration: none; }
+  .header-contacts span::after { content: ' | '; }
+  .header-contacts span:last-child::after { content: ''; }
+
+  h2 {
+    font-size: 0.85em;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    border-bottom: 1px solid #000;
+    padding-bottom: 2px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+
+  p { font-size: 1em; line-height: 1.5; }
+
+  /* ATS-safe single-column skills list */
+  .skills-list { font-size: 1em; line-height: 1.8; }
+  .skills-list p { margin-bottom: 2px; }
+  .skills-list strong { font-weight: 700; }
+
+  .entry { margin-bottom: 7px; }
+
+  /* Flexbox replaces display:table — Edge/Chrome rasterizes text inside display:table on print */
+  .entry-header { display: flex; width: 100%; justify-content: space-between; align-items: flex-end; }
+  .entry-title { font-size: 1em; font-weight: 700; flex: 1; }
+  .entry-date { font-size: 0.9em; font-weight: 400; text-align: right; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
+
+  .entry-sub { font-size: 0.9em; margin-top: 1px; margin-bottom: 3px; }
+
+  ul { padding-left: 16px; }
+  ul li { font-size: 0.95em; line-height: 1.4; margin-bottom: 1px; }
+
+  .app-entry { font-size: 0.95em; margin-bottom: 3px; }
+  .app-entry strong { font-weight: 700; }
+
+  .oss-entry { font-size: 0.95em; margin-bottom: 3px; }
+  .oss-entry strong { font-weight: 700; }
+
+  .edu-entry { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; }
+  .edu-left { flex: 1; }
+  .edu-degree { font-size: 1em; font-weight: 700; }
+  .edu-school { font-size: 0.95em; margin-top: 2px; }
+  .edu-date { font-size: 0.95em; text-align: right; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
+
+  @media (max-width: 768px) {
+    body { font-size: 14px; }
+    .page { padding: 28px 24px; }
+    h1 { font-size: 1.75em; }
+    .header-contacts { font-size: 0.85em; }
+    .entry-header { flex-direction: column; align-items: flex-start; }
+    .entry-date { text-align: left; padding-left: 0; margin-top: 1px; }
+    .edu-entry { flex-direction: column; }
+    .edu-date { text-align: left; padding-left: 0; margin-top: 2px; }
+  }
+
+  @media (max-width: 480px) {
+    body { font-size: 13px; }
+    .page { padding: 20px 16px; }
+    h1 { font-size: 1.5em; }
+    .header-contacts span::after { content: ''; }
+    .header-contacts span { display: block; margin-bottom: 2px; }
+    .header-contacts span:last-child { margin-bottom: 0; }
+    ul { padding-left: 14px; }
+  }
+
+  @page {
+    margin: 14mm 14mm 14mm 14mm;
+    size: A4;
+  }
+
+  @media print {
+    /* Force vector text rendering — no opacity, no transform, no will-change */
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      opacity: 1 !important;
+      transform: none !important;
+      filter: none !important;
+      text-shadow: none !important;
+      box-shadow: none !important;
+    }
+    body {
+      font-size: 10.5px;
+      color: #000 !important;
+      background: #fff !important;
+      /* Explicit font stack forces Edge to use system vector fonts, not bitmap fallbacks */
+      font-family: Arial, Helvetica, sans-serif !important;
+    }
+    .page { max-width: 100%; padding: 0; margin: 0; }
+    h2 { margin-top: 7px; margin-bottom: 4px; }
+    .entry { margin-bottom: 5px; }
+    a { color: #000 !important; text-decoration: none !important; }
+    ul li { margin-bottom: 1px; }
+    .entry { page-break-inside: avoid; break-inside: avoid; }
+    .edu-entry { page-break-inside: avoid; break-inside: avoid; }
+    .app-entry { page-break-inside: avoid; break-inside: avoid; }
+    .oss-entry { page-break-inside: avoid; break-inside: avoid; }
+    h2 { page-break-after: avoid; break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Raj Kavadia</h1>
+  <p class="header-title">Senior Android Developer | Flutter Developer | Mobile Tech Lead | 9+ Years Experience</p>
+  <div class="header-contacts">
+    <span>Ahmedabad, Gujarat, India &mdash; Open to Remote</span>
+    <span><a href="mailto:rajkavadia78@gmail.com">rajkavadia78@gmail.com</a></span>
+    <span><a href="tel:+918238267544">+91 82382 67544</a></span>
+    <span><a href="https://linkedin.com/in/rajkavadia">linkedin.com/in/rajkavadia</a></span>
+    <span><a href="https://github.com/RajKavadia">github.com/RajKavadia</a></span>
+  </div>
+
+  <h2>Summary</h2>
+  <p>Senior Android Engineer with 9+ years of experience building scalable, production-grade Android and Flutter apps across FinTech, Banking, SaaS, and E-commerce. Expert in Kotlin, Jetpack Compose, Clean Architecture, feature-based multi-module architecture, Hilt DI, Coroutines, and Flow. Proven record leading and mentoring teams of 5+, owning architectural decisions, and shipping apps with 50L+ downloads for SIDBI, SBI, and PNB. Actively integrates AI-assisted development workflows — including Claude, MCP (Model Context Protocol), and Codex CLI — to improve code quality, architecture decisions, and productivity. Skilled in performance profiling, APK/AAB optimisation, CI/CD, and mobile security.</p>
+
+  <h2>Skills</h2>
+  <div class="skills-list">
+    <p><strong>Languages:</strong> Kotlin, Dart, Java, Python</p>
+    <p><strong>Mobile:</strong> Android SDK, Flutter, Jetpack Compose, Kotlin Multiplatform (KMP), React Native, iOS</p>
+    <p><strong>Architecture:</strong> MVVM, MVC, Clean Architecture, BLoC, Provider, GetX</p>
+    <p><strong>Android Libraries:</strong> Coroutines, Flow, LiveData, Retrofit, OkHttp, Room, Hilt, Dagger, Gradle, ProGuard, App Bundle, Play Console</p>
+    <p><strong>UI and Design:</strong> Material Design 3, Material You, Custom Animations, Accessibility (a11y), WCAG Guidelines</p>
+    <p><strong>Performance:</strong> Android Profiler, Memory Optimization, CPU Profiling, App Startup Optimization, LeakCanary</p>
+    <p><strong>Testing:</strong> JUnit, Espresso, Mockito, Unit Testing, UI Testing</p>
+    <p><strong>Backend and Cloud:</strong> Firebase (Auth, Firestore, FCM, Functions, Remote Config, A/B Testing), RESTful APIs, GraphQL, WebSockets, Real-time Sync</p>
+    <p><strong>Security:</strong> AES Encryption, Secure API Communication, VAPT, MobSF, Reverse Engineering</p>
+    <p><strong>Dev Tools:</strong> Android Studio, Git, GitHub Actions, CI/CD, Agile, Scrum, Jira</p>
+    <p><strong>Architecture Patterns:</strong> Feature-based Modularization, Multi-Module Architecture, Dependency Injection (Hilt, Dagger)</p>
+    <p><strong>AI and Automation:</strong> Claude, MCP (Model Context Protocol), Codex CLI, TensorFlow Lite, n8n, Playwright, AI-assisted Development</p>
+  </div>
+
+  <h2>Experience</h2>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Senior Mobile Application Developer</span>
+      <span class="entry-date">Mar 2023 - Present</span>
+    </div>
+    <p class="entry-sub">OnlinePSBLoans - Ahmedabad, Gujarat</p>
+    <ul>
+      <li>Architected and led development of a FinTech loan origination mobile platform using Kotlin, Jetpack Compose, and Kotlin Multiplatform (KMP), reducing customer onboarding time by 35%.</li>
+      <li>Spearheaded migration of legacy XML layouts to Jetpack Compose across 20+ screens, following Material Design 3 guidelines, improving UI consistency and developer velocity by 30%.</li>
+      <li>Designed and implemented secure document upload and e-sign workflows with AES encryption, achieving zero critical vulnerabilities in production VAPT audits.</li>
+      <li>Established CI/CD pipelines using GitHub Actions with Agile sprint workflows, cutting release cycles from 2 weeks to 3 days.</li>
+      <li>Applied Coroutines and Flow for asynchronous state management; used Retrofit and OkHttp for scalable API communication layers.</li>
+      <li>Enforced accessibility (a11y) and WCAG 2.1 AA compliance across all screens, improving usability for users with disabilities.</li>
+      <li>Reduced APK size by 40% through ProGuard optimisation, resource shrinking, and App Bundle delivery; improved Play Store rating to 4.5+ stars.</li>
+      <li>Mentored and conducted weekly code reviews for a team of 5 engineers, establishing coding standards, PR review processes, and architectural guidelines.</li>
+      <li>Wrote unit tests and UI tests using JUnit, Espresso, and Mockito, maintaining 80%+ code coverage across core modules.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Lead Mobile Application Developer</span>
+      <span class="entry-date">Dec 2022 - Mar 2023</span>
+    </div>
+    <p class="entry-sub">Ekshot Advertcomm Pvt. Ltd. - Gandhidham, Kutch</p>
+    <ul>
+      <li>Led full-cycle mobile product development for a SaaS advertising and commerce platform, owning architecture, Scrum planning, team delivery, and code reviews.</li>
+      <li>Built a real-time ad campaign tracking module using WebSockets and Firebase, improving client reporting accuracy by 40%.</li>
+      <li>Introduced modular feature-based Clean Architecture, reducing build time by 30% and enabling parallel development across team members.</li>
+      <li>Mentored junior developers through structured code reviews and pair programming sessions, improving team code quality and reducing bug escape rate by 25%.</li>
+      <li>Managed Google Play Store deployments using App Bundle and Play Console; configured ProGuard rules and reduced APK size by 35% for release builds.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Mobile Application Developer</span>
+      <span class="entry-date">Oct 2020 - Dec 2022</span>
+    </div>
+    <p class="entry-sub">E2 Infosystems - Chennai, Tamil Nadu</p>
+    <ul>
+      <li>Built Kotlin and Jetpack-based Android and Flutter applications for e-commerce clients using Kotlin Multiplatform (KMP), increasing user retention by 20%.</li>
+      <li>Integrated payment gateways (Razorpay, Stripe) and real-time order tracking systems, improving transaction success rates by 30%.</li>
+      <li>Designed scalable REST API layers with Retrofit and OkHttp for microservices architecture, reducing latency and app load time by 25%.</li>
+      <li>Shipped CATIE Mobile (1K+ downloads) and CATIE IRP to Google Play Store for Status Solutions; implemented accessibility (a11y) features for senior care users.</li>
+      <li>Implemented Room database for offline-first architecture and Hilt for dependency injection; optimised APK size by 30% using App Bundle and resource shrinking.</li>
+      <li>Conducted code reviews and mentored a team of 3 junior developers, establishing coding standards and reducing production bug rate by 20%.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Android Developer</span>
+      <span class="entry-date">Jul 2018 - Oct 2020</span>
+    </div>
+    <p class="entry-sub">RSP Innovations - Bangalore, Karnataka</p>
+    <ul>
+      <li>Developed and deployed consumer Android applications using Kotlin, KMP, and MVC architecture, increasing user engagement by 25%.</li>
+      <li>Integrated Google Maps SDK, location services, and third-party APIs, reducing app load time by 25%.</li>
+      <li>Implemented accessibility (a11y) improvements and Material Design guidelines across 10+ screens, improving Play Store rating from 3.9 to 4.3 stars.</li>
+      <li>Collaborated with backend teams to design RESTful API contracts and improve mobile-server data sync reliability.</li>
+      <li>Used Gradle build configurations, ProGuard, and App Bundle to reduce APK size by 28% and streamline Play Store release management.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Android Developer</span>
+      <span class="entry-date">Jun 2017 - Jul 2018</span>
+    </div>
+    <p class="entry-sub">Ghost Technologies - Bangalore, Karnataka</p>
+    <ul>
+      <li>Integrated Google Maps and custom animation libraries into consumer Android apps, improving customer satisfaction by 20%.</li>
+      <li>Designed scalable Android application architectures following Material Design guidelines, cutting app load times by 50%.</li>
+      <li>Optimised app performance using Android Profiler, reducing memory leaks and improving frame rendering to a stable 60fps.</li>
+      <li>Implemented Firebase Remote Config and A/B testing to enable feature flags and data-driven UI experiments without app releases.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Trainee Android Developer</span>
+      <span class="entry-date">Aug 2016 - Jun 2017</span>
+    </div>
+    <p class="entry-sub">Palle Technologies - Bangalore, Karnataka</p>
+    <ul>
+      <li>Built foundational expertise in Android development, Java, Python scripting, UI design, SDK integration, and application lifecycle management.</li>
+      <li>Developed and shipped 3 internal Android utility apps following MVVM architecture, Material Design principles, and accessibility (a11y) standards.</li>
+      <li>Participated in full Agile sprint cycles — requirements gathering, design reviews, development, QA, and Play Store release preparation.</li>
+    </ul>
+  </div>
+
+  <h2>Projects and Published Apps</h2>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Tradgo - Recharge and Bill Payment</span>
+      <span class="entry-date">Android | 50L+ Downloads | 4.7 Stars</span>
+    </div>
+    <p class="entry-sub">Pdrs Multitrade Pvt Ltd | Kotlin, Android SDK, MVVM</p>
+    <ul>
+      <li>Architected and shipped a high-traffic consumer Android app for mobile recharge, DTH, utility bills, and local services, reaching 50L+ downloads with a 4.7-star rating on Google Play Store.</li>
+      <li>Implemented performance optimisations using Android Profiler and memory leak detection, sustaining smooth UX under high concurrent user loads.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Prayaas - Microfinance App</span>
+      <span class="entry-date">Flutter | 10K+ Downloads | 4.1 Stars</span>
+    </div>
+    <p class="entry-sub">SIDBI | Flutter, Dart, BLoC</p>
+    <ul>
+      <li>Built cross-platform Flutter app digitising the end-to-end microfinance borrower journey for SIDBI partner institutions, enabling paperless loan origination at scale.</li>
+      <li>Integrated accessibility (a11y) features and multilingual support to serve rural and semi-urban borrower demographics.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">CATIE Mobile and CATIE IRP - In-Room Portal</span>
+      <span class="entry-date">Flutter | 1K+ Downloads</span>
+    </div>
+    <p class="entry-sub">Status Solutions, USA | Flutter, Dart, Firebase</p>
+    <ul>
+      <li>Developed two production Flutter apps — CATIE Mobile (real-time emergency tracking) and CATIE IRP (resident in-room portal) — for US-based senior care communities.</li>
+      <li>Integrated Firebase FCM for real-time emergency alerting with sub-second notification delivery and offline-resilient data sync.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">GST Sahay - FinTech Invoice Financing App</span>
+      <span class="entry-date">Jan 2024 - Present</span>
+    </div>
+    <p class="entry-sub">FinAGG / OPLinnovate | Flutter, Dart, GetX, BLoC</p>
+    <ul>
+      <li>Built cross-platform Flutter app enabling MSMEs to access quick, collateral-free invoice financing via OCEN and Account Aggregator frameworks.</li>
+      <li>Integrated real-time GST data APIs for automated creditworthiness assessment and loan eligibility scoring.</li>
+      <li>Designed scalable multi-bank and NBFC co-lending workflows using Agile methodology, improving cash flow access for micro and small enterprises.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">Jan Suraksha Schemes - Government Insurance App</span>
+      <span class="entry-date">Mar 2023 - Sep 2023</span>
+    </div>
+    <p class="entry-sub">Government of India Initiative (PMJJBY, PMSBY, APY) | Flutter, Dart, Android</p>
+    <ul>
+      <li>Built cross-platform Flutter and Android app enabling citizens to apply for PMJJBY and PMSBY social security insurance schemes.</li>
+      <li>Integrated backend systems for policy applications, premium collection, and beneficiary management at national scale.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">SBI MSME Sahaj - Working Capital App</span>
+      <span class="entry-date">Oct 2023 - Mar 2024</span>
+    </div>
+    <p class="entry-sub">State Bank of India (SBI) | Flutter, Dart</p>
+    <ul>
+      <li>Developed Flutter mobile app enabling MSMEs to access invoice financing and working capital solutions from State Bank of India.</li>
+      <li>Integrated SBI backend systems for end-to-end loan application, eligibility checks, and disbursal workflows.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">PNB Sahay - MSME Financing App</span>
+      <span class="entry-date">Apr 2024 - Oct 2024</span>
+    </div>
+    <p class="entry-sub">Punjab National Bank (PNB) | Flutter, Dart</p>
+    <ul>
+      <li>Built Flutter cross-platform app for MSMEs to access working capital and operational financing from Punjab National Bank.</li>
+      <li>Integrated PNB loan origination systems with automated eligibility and disbursal workflows for fast liquidity access.</li>
+    </ul>
+  </div>
+
+  <h2>Open Source Projects</h2>
+  <div class="oss-entry"><strong>Stratum</strong> - Flutter state management library using lifetime-based architecture with Atom, FlowController, and AppStore.</div>
+  <div class="oss-entry"><strong>di_manager</strong> - Dependency Injection framework for Flutter and Dart with singleton and factory patterns and type-safe service resolution.</div>
+  <div class="oss-entry"><strong>cross_logger</strong> - Cross-platform logging with AES encryption, real-time WebSocket streaming, and IndexedDB storage for web.</div>
+  <div class="oss-entry"><strong>flutter_pub_analyzer</strong> - CLI tool for Flutter dependency analysis with unused dependency detection and Graphviz and Mermaid visualization.</div>
+  <div class="oss-entry"><strong>pdf_checker</strong> - Dart utility for detecting password-protected PDFs via stream-based RandomAccessFile processing.</div>
+
+  <h2>Education</h2>
+  <div class="edu-entry">
+    <div class="edu-left">
+      <p class="edu-degree">Bachelor of Engineering (B.E.) in Information Technology</p>
+      <p class="edu-school">Gujarat Technological University (GTU), Ahmedabad, Gujarat | First Class</p>
+    </div>
+    <div class="edu-date">Jun 2012 - May 2016</div>
+  </div>
+
+</div>
+</body>
+</html>

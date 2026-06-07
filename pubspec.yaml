@@ -1,0 +1,58 @@
+name: resumetailor
+description: "AI-powered resume tailor using Gemini API — Android & Web"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.2
+  html: ^0.15.4
+  shared_preferences: ^2.3.3
+  intl: ^0.19.0
+  url_launcher: ^6.3.1
+  sqflite: ^2.3.3+1
+
+  # AI
+  google_generative_ai: ^0.4.6
+
+  # WebView (supports Android + Web via iframe)
+  flutter_inappwebview: ^6.1.5
+
+  # PDF export (Android/iOS only — web uses dart:html print)
+  printing: ^5.13.2
+  pdf: ^3.11.3
+
+  # Path utilities (Android only, tree-shaken on web)
+  path_provider: ^2.1.4
+  web: ^1.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/Raj_Kavadia_Resume_ATS.html
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/static/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/static/Roboto-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/static/Roboto-Bold.ttf
+          weight: 700
+        - asset: assets/static/Roboto-BoldItalic.ttf
+          weight: 700
+          style: italic
