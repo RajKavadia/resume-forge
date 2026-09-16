@@ -16,6 +16,9 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # Self-contained host-side harness package with its own pubspec/toolchain;
+    # it is analyzed and tested independently, not as part of the app.
+    - tool/physical_device_e2e/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

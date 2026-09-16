@@ -104,7 +104,8 @@ class AdbDeviceAdapter {
         .join(' ');
     return AdbCommandResult(
       exitCode: result.exitCode,
-      stdout: _bounded(_redact(result.stdout.toString(), secrets), false),
+      stdout: _bounded(_redact(result.stdout.toString(), secrets),
+          normalizeWhitespace: false),
       stderr: _bounded(_redact(result.stderr.toString(), secrets)),
       command: command,
     );

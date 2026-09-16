@@ -6,7 +6,7 @@ import 'gemini_service.dart' show buildResumePrompt;
 
 class NvidiaService {
   static const endpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
-  static const defaultModel = 'openai/gpt-oss-20b';
+  static const defaultModel = 'nvidia/nemotron-3-ultra-550b-a55b';
 
   static Future<String> tailorResume(String jobDescription, {
     required String apiKey,
@@ -26,7 +26,7 @@ class NvidiaService {
       return raw2.replaceAll(RegExp(r'```html\s*', caseSensitive: false), '').replaceAll(RegExp(r'```\s*'), '').trim();
     }
     // Auto-rotation across curated fallback models on failure (fastest first)
-    const fallbacks = ['openai/gpt-oss-20b','nvidia/nemotron-3-nano-omni-30b-a3b-reasoning','mistralai/mistral-large-2-instruct','nvidia/nemotron-3-super-120b-a12b'];
+    const fallbacks = ['nvidia/nemotron-3-ultra-550b-a55b','nvidia/nemotron-3-nano-omni-30b-a3b-reasoning','mistralai/mistral-large-2-instruct','nvidia/nemotron-3-super-120b-a12b'];
     final tried = <String>{};
     final primary = (modelOverride?.trim().isNotEmpty == true) ? modelOverride!.trim() : defaultModel;
     final queue = [primary, ...fallbacks.where((m) => m != primary)];
