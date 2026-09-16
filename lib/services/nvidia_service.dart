@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
+import 'base_resume_service.dart';
 import 'gemini_service.dart' show buildResumePrompt;
+import 'resume_section_service.dart';
 
 class NvidiaService {
   /// Default provider backing this service. NVIDIA remains the default; the
@@ -39,14 +40,39 @@ class NvidiaService {
     http.Client? httpClient,
   }) async {
     if (apiKey.trim().isEmpty) throw Exception('API key is required.');
-    final baseHtml = baseHtmlOverride ?? await rootBundle.loadString('assets/Raj_Kavadia_Resume_ATS.html');
+    // Base-HTML source priority: explicit override (tests) > local cache >
+    // bundled asset (cached on first load).
+    final baseHtml = baseHtmlOverride ?? await BaseResumeService.load();
+
+    // Reduced-payload path: when specific sections are requested we send only
+    // those section fragments to the model and merge its tailored output back
+    // into the full base HTML on-device. The full-optimize path (empty
+    // sectionsToOptimize) keeps embedding/returning the whole document.
+    final isReduced = sectionsToOptimize.isNotEmpty;
+    final allowedHeadings = isReduced
+        ? ResumeSectionService.headingsForLabels(sectionsToOptimize)
+        : const <String>[];
+
+    /// Turns whatever the model returned into a complete, fence-stripped HTML
+    /// document: for the reduced path this merges the tailored fragments back
+    /// into [baseHtml]; for the full path it is already a whole document.
+    String finalize(String rawContent) {
+      final stripped = _stripFences(rawContent);
+      if (!isReduced) return stripped;
+      return ResumeSectionService.mergeSections(
+        baseHtml,
+        stripped,
+        allowedHeadings: allowedHeadings,
+      );
+    }
+
     final prompt = buildResumePrompt(baseHtml, jobDescription, sectionsToOptimize, customInstructions);
     if (generateOverride != null) {
       final raw2 = await generateOverride(prompt);
       developer.log('NVIDIA returned response', name: 'ResumeForge.NvidiaService', error: {'responseLength': raw2.length});
-      final stripped = _stripFences(raw2);
-      if (onDelta != null) onDelta(stripped);
-      return stripped;
+      final merged = finalize(raw2);
+      if (onDelta != null) onDelta(merged);
+      return merged;
     }
     // Auto-rotation across curated fallback models on failure (fastest first)
     const fallbacks = ['nvidia/nemotron-3-ultra-550b-a55b','nvidia/nemotron-3-nano-omni-30b-a3b-reasoning','mistralai/mistral-large-2-instruct','nvidia/nemotron-3-super-120b-a12b'];
@@ -54,6 +80,19 @@ class NvidiaService {
     final primary = (modelOverride?.trim().isNotEmpty == true) ? modelOverride!.trim() : defaultModel;
     final queue = [primary, ...fallbacks.where((m) => m != primary)];
     Exception? lastError;
+    // During streaming, show progressive content. For the reduced path the
+    // model streams only fragments, so we merge each partial buffer into the
+    // full base HTML before surfacing it, keeping the preview a valid document.
+    void Function(String partialHtml)? streamDelta;
+    if (onDelta != null) {
+      streamDelta = isReduced
+          ? (partial) => onDelta(ResumeSectionService.mergeSections(
+                baseHtml,
+                partial,
+                allowedHeadings: allowedHeadings,
+              ))
+          : onDelta;
+    }
     for (final m in queue) {
       if (tried.contains(m)) continue;
       tried.add(m);
@@ -63,12 +102,19 @@ class NvidiaService {
           prompt,
           endpoint: endpointOverride,
           model: m,
-          onDelta: onDelta,
+          onDelta: streamDelta,
           httpClient: httpClient,
         );
         if (m != primary) developer.log('Model rotated to $m', name: 'ResumeForge.NvidiaService');
         developer.log('NVIDIA returned response', name: 'ResumeForge.NvidiaService', error: {'responseLength': raw.length, 'model': m});
-        return _stripFences(raw);
+        final merged = finalize(raw);
+        // For the reduced path the streamed onDelta values were merged from
+        // partial fragments; emit one final onDelta carrying the fully-merged
+        // document so the last value always equals the returned result. For the
+        // full path the stream already emitted the final document, so we do not
+        // emit a duplicate.
+        if (isReduced && onDelta != null) onDelta(merged);
+        return merged;
       } catch (e) {
         lastError = e is Exception ? e : Exception(e.toString());
         developer.log('Model $m failed, rotating', name: 'ResumeForge.NvidiaService', error: e);
