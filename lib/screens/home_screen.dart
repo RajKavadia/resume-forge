@@ -23,6 +23,7 @@ typedef TailorResumeFn =
       String? modelOverride,
       List<String> sectionsToOptimize,
       String customInstructions,
+      void Function(String partialHtml)? onDelta,
     });
 
 typedef SaveJournalFn =
@@ -57,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isLoading = false;
   String? _errorMessage;
   String? _importStatus;
+  String _streamingPreview = '';
   // ignore: prefer_final_fields
   bool _saveApiKey = true;
   bool _isCapturing = false;
@@ -197,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _streamingPreview = '';
     });
 
     try {
@@ -219,6 +222,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         modelOverride: model.isEmpty ? null : model,
         sectionsToOptimize: _sectionsToOptimize,
         customInstructions: _customInstructionsController.text.trim(),
+        onDelta: (partialHtml) {
+          if (!mounted) return;
+          setState(() => _streamingPreview = partialHtml);
+        },
       );
       await _updateCaptureStatus('Resume tailored, opening preview');
       developer.log(
@@ -428,6 +435,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       const SizedBox(height: 10),
                     ],
                     _buildCapturedTextPanel(),
+                    if (_isLoading && _streamingPreview.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _buildStreamingPreview(),
+                    ],
                     const SizedBox(height: 12),
                     _buildTailorButton(),
                   ],
@@ -886,6 +897,69 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildStreamingPreview() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF15151D),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF2A2A3A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF3ECFCF),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Streaming tailored resume…',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                '${_streamingPreview.length} chars',
+                style: TextStyle(
+                  color: Colors.white.withAlpha(120),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 180),
+            child: SingleChildScrollView(
+              reverse: true,
+              child: Text(
+                _streamingPreview,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  height: 1.35,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
