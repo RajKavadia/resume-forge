@@ -5,7 +5,7 @@ import 'resume_section_service.dart';
 
 /// Compatibility facade; generation is now handled by NVIDIA NIM.
 class GeminiService {
-  static Future<String> tailorResume(String jobDescription, {required String apiKey, List<String> sectionsToOptimize = const [], String customInstructions = '', String? baseHtmlOverride, Future<String> Function(String prompt)? generateOverride, void Function(String partialHtml)? onDelta}) => NvidiaService.tailorResume(jobDescription, apiKey: apiKey, sectionsToOptimize: sectionsToOptimize, customInstructions: customInstructions, baseHtmlOverride: baseHtmlOverride, generateOverride: generateOverride, onDelta: onDelta);
+  static Future<String> tailorResume(String jobDescription, {required String apiKey, List<String> sectionsToOptimize = const [], String customInstructions = '', String? baseHtmlOverride, Future<String> Function(String prompt)? generateOverride, void Function(String partialHtml)? onDelta, String? providerId}) => NvidiaService.tailorResume(jobDescription, apiKey: apiKey, sectionsToOptimize: sectionsToOptimize, customInstructions: customInstructions, baseHtmlOverride: baseHtmlOverride, generateOverride: generateOverride, onDelta: onDelta, providerId: providerId);
 }
 
 

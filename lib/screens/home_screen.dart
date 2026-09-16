@@ -24,6 +24,7 @@ typedef TailorResumeFn =
       List<String> sectionsToOptimize,
       String customInstructions,
       void Function(String partialHtml)? onDelta,
+      String? providerId,
     });
 
 typedef SaveJournalFn =

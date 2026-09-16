@@ -26,11 +26,19 @@ class AiProvider {
   /// Default model for this provider.
   final String defaultModel;
 
+  /// Ordered list of fallback models to rotate through on a pre-content
+  /// failure, fastest/preferred first. These are provider-specific: rotating
+  /// NVIDIA model names against a Groq endpoint (or vice versa) would send
+  /// invalid model IDs, so each provider carries only its own catalog. The
+  /// list should begin with [defaultModel].
+  final List<String> fallbackModels;
+
   const AiProvider({
     required this.id,
     required this.name,
     required this.endpoint,
     required this.defaultModel,
+    this.fallbackModels = const [],
   });
 
   /// Builds the Authorization header value for the given API key.
@@ -48,6 +56,12 @@ class AiProviders {
     name: 'NVIDIA NIM',
     endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
     defaultModel: 'nvidia/nemotron-3-ultra-550b-a55b',
+    fallbackModels: [
+      'nvidia/nemotron-3-ultra-550b-a55b',
+      'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+      'mistralai/mistral-large-2-instruct',
+      'nvidia/nemotron-3-super-120b-a12b',
+    ],
   );
 
   /// Groq provider (OpenAI-compatible). Not active by default; provided so it
@@ -57,6 +71,10 @@ class AiProviders {
     name: 'Groq',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     defaultModel: 'llama-3.3-70b-versatile',
+    fallbackModels: [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+    ],
   );
 
   /// All registered providers.
