@@ -2,9 +2,16 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'ai_provider.dart';
 import 'gemini_service.dart' show buildResumePrompt;
 
 class NvidiaService {
+  /// Default provider backing this service. NVIDIA remains the default; the
+  /// transport specifics (endpoint + auth header) are resolved from this
+  /// [AiProvider] so a different OpenAI-compatible provider can be swapped in
+  /// with minimal change.
+  static const AiProvider defaultProviderDescriptor = AiProviders.nvidia;
+
   static const endpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
   static const defaultModel = 'nvidia/nemotron-3-ultra-550b-a55b';
 
@@ -50,10 +57,14 @@ class NvidiaService {
   }
 
   static Future<String> _complete(String apiKey, String prompt, {String? endpoint, String? model}) async {
-    final effEndpoint = (endpoint != null && endpoint.trim().isNotEmpty) ? endpoint.trim() : NvidiaService.endpoint;
-    final effModel = (model != null && model.trim().isNotEmpty) ? model.trim() : NvidiaService.defaultModel;
+    // Transport specifics (endpoint + auth header) come from the resolved
+    // provider descriptor (NVIDIA by default). An explicit endpoint/model
+    // override still wins; when absent we fall back to the default provider.
+    final provider = defaultProviderDescriptor;
+    final effEndpoint = (endpoint != null && endpoint.trim().isNotEmpty) ? endpoint.trim() : provider.endpoint;
+    final effModel = (model != null && model.trim().isNotEmpty) ? model.trim() : provider.defaultModel;
     final response = await http.post(Uri.parse(effEndpoint), headers: {
-      'Authorization': 'Bearer $apiKey',
+      'Authorization': provider.authHeader(apiKey),
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }, body: jsonEncode({
