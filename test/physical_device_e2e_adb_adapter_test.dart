@@ -14,7 +14,7 @@ void main() {
         calls.add(arguments);
         final output = arguments.contains('devices')
             ? 'List of devices attached\nABC123 device product:x model:Pixel_7\n'
-            : arguments.contains('stat')
+            : arguments.any((arg) => arg.contains('stat -c'))
             ? '42\n'
             : arguments.contains('wm')
             ? 'Physical size: 1080x2400\n'

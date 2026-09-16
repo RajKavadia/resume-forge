@@ -38,7 +38,7 @@ void main() {
     final scenario = Scenario.fromJson(validScenario());
     expect(scenario.packageName, 'com.example.app');
     expect(scenario.device.serial, 'device-1');
-    expect(scenario.actions.single.type, 'text');
+    expect(scenario.actions.first.type, 'text');
     expect(scenario.nvidiaEndpoint.host, 'integrate.api.nvidia.com');
     expect(scenario.timeouts.generation, 60000);
   });

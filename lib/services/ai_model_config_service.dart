@@ -13,7 +13,7 @@ class AiModelConfig {
   });
 
   static const defaultEndpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
-  static const defaultModel = 'openai/gpt-oss-20b';
+  static const defaultModel = 'nvidia/nemotron-3-ultra-550b-a55b';
 
   factory AiModelConfig.defaults({String apiKey = ''}) => AiModelConfig(
         endpoint: defaultEndpoint,
