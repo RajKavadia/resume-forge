@@ -4,30 +4,32 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:resumetailor/services/deep_link_service.dart';
-import 'package:resumetailor/services/gemini_service.dart';
+import 'package:resumetailor/services/nvidia_service.dart';
 import 'package:resumetailor/services/job_import_service.dart';
 import 'package:resumetailor/screens/preview_screen.dart';
 import 'package:resumetailor/services/journal_service.dart';
 import 'package:resumetailor/services/screen_capture_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:resumetailor/screens/journal_screen.dart';
-import 'package:resumetailor/screens/job_feed_screen.dart';
-import 'package:resumetailor/services/job_feed_service.dart';
+import 'package:resumetailor/screens/jobs_list_screen.dart';
+import 'package:resumetailor/models/job.dart';
+import 'package:resumetailor/services/ai_model_config_service.dart';
+import 'package:resumetailor/services/nvidia_models_service.dart';
 
-typedef TailorResumeFn = Future<String> Function(
-  String jobDescription, {
-  required String apiKey,
-  List<String> sectionsToOptimize,
-  String customInstructions,
-});
+typedef TailorResumeFn =
+    Future<String> Function(
+      String jobDescription, {
+      required String apiKey,
+      String? endpointOverride,
+      String? modelOverride,
+      List<String> sectionsToOptimize,
+      String customInstructions,
+    });
 
-typedef SaveJournalFn = Future<void> Function(String html, String jobDescription);
+typedef SaveJournalFn =
+    Future<void> Function(String html, String jobDescription);
 
 Future<void> defaultSaveJournal(String html, String jobDescription) {
-  return JournalService.add(
-    html: html,
-    jobDescription: jobDescription,
-  );
+  return JournalService.add(html: html, jobDescription: jobDescription);
 }
 
 class HomeScreen extends StatefulWidget {
@@ -36,7 +38,7 @@ class HomeScreen extends StatefulWidget {
 
   const HomeScreen({
     super.key,
-    this.tailorResume = GeminiService.tailorResume,
+    this.tailorResume = NvidiaService.tailorResume,
     this.saveJournal = defaultSaveJournal,
   });
 
@@ -44,11 +46,13 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  static const _prefsApiKey = 'gemini_api_key';
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  static const _prefsApiKey = 'nvidia_api_key';
   static const _autoGenerateOnCapture = true;
 
   final _apiKeyController = TextEditingController();
+  final _endpointController = TextEditingController();
+  final _modelController = TextEditingController();
   final _apiKeyFocusNode = FocusNode();
   bool _isLoading = false;
   String? _errorMessage;
@@ -60,14 +64,35 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription? _captureSub;
   StreamSubscription? _deepLinkSub;
   final List<_CapturedEntry> _capturedEntries = <_CapturedEntry>[];
-  final JobFeedService _jobFeedService = JobFeedService();
   final _customInstructionsController = TextEditingController();
-  List<String> _sectionsToOptimize = ['Summary', 'Skills', 'Experience', 'Projects', 'Open Source', 'Education'];
+  List<String> _sectionsToOptimize = [
+    'Summary',
+    'Skills',
+    'Experience',
+    'Projects',
+    'Open Source',
+    'Education',
+  ];
+
+  bool _accessibilityEnabled = true;
+
+  Future<void> _checkAccessibility() async {
+    final v = await ScreenCaptureService.isAccessibilityEnabled();
+    if (!mounted) return;
+    setState(() => _accessibilityEnabled = v);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkAccessibility();
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSavedApiKey();
+    _checkAccessibility();
     _initDeepLinks();
     try {
       _captureSub = ScreenCaptureService.events().listen((event) {
@@ -79,10 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _capturedEntries.insert(
               0,
-              _CapturedEntry(
-                timestamp: DateTime.now(),
-                text: text,
-              ),
+              _CapturedEntry(timestamp: DateTime.now(), text: text),
             );
           });
           if (_autoGenerateOnCapture &&
@@ -135,19 +157,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadSavedApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_prefsApiKey) ?? '';
+    final config = await AiModelConfigService.load();
     if (!mounted) return;
     setState(() {
-      _apiKeyController.text = saved;
+      _apiKeyController.text = config.apiKey;
+      _endpointController.text = config.endpoint;
+      _modelController.text = config.model;
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _captureSub?.cancel();
     _deepLinkSub?.cancel();
     _apiKeyController.dispose();
+    _endpointController.dispose();
+    _modelController.dispose();
     _customInstructionsController.dispose();
     _apiKeyFocusNode.dispose();
     super.dispose();
@@ -155,9 +181,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _onTailorPressed({String? jobDescription}) async {
     final apiKey = _apiKeyController.text.trim();
-    final jd = (jobDescription ?? (_capturedEntries.isEmpty ? '' : _capturedEntries.first.text)).trim();
+    final jd =
+        (jobDescription ??
+                (_capturedEntries.isEmpty ? '' : _capturedEntries.first.text))
+            .trim();
     if (apiKey.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your Gemini API key.');
+      setState(() => _errorMessage = 'Please enter your NVIDIA API key.');
       return;
     }
     if (jd.isEmpty) {
@@ -177,14 +206,17 @@ class _HomeScreenState extends State<HomeScreen> {
         name: 'ResumeForge.Home',
         error: {'jdLength': jd.length},
       );
+      final endpoint = _endpointController.text.trim();
+      final model = _modelController.text.trim();
       if (_saveApiKey) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_prefsApiKey, apiKey);
+        await AiModelConfigService.save(AiModelConfig(endpoint: endpoint.isEmpty ? AiModelConfig.defaultEndpoint : endpoint, model: model.isEmpty ? AiModelConfig.defaultModel : model, apiKey: apiKey));
       }
 
       final optimizedHtml = await widget.tailorResume(
         jd,
         apiKey: apiKey,
+        endpointOverride: endpoint.isEmpty ? null : endpoint,
+        modelOverride: model.isEmpty ? null : model,
         sectionsToOptimize: _sectionsToOptimize,
         customInstructions: _customInstructionsController.text.trim(),
       );
@@ -202,19 +234,22 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       await Navigator.of(context).push(
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
-            opacity: animation,
-            child: PreviewScreen(
-              htmlContent: optimizedHtml,
-              autoDownload: true,
-            ),
-          ),
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              FadeTransition(
+                opacity: animation,
+                child: PreviewScreen(
+                  htmlContent: optimizedHtml,
+                  autoDownload: true,
+                ),
+              ),
           transitionDuration: const Duration(milliseconds: 400),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = e.toString().replaceFirst('Exception: ', ''));
+      setState(
+        () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -313,10 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _capturedEntries.insert(
           0,
-          _CapturedEntry(
-            timestamp: DateTime.now(),
-            text: extracted,
-          ),
+          _CapturedEntry(timestamp: DateTime.now(), text: extracted),
         );
         _importStatus = 'Shared text confirmed.';
       });
@@ -373,11 +405,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     _buildHeader(),
                     const SizedBox(height: 20),
+                    if (!_accessibilityEnabled) ...[
+                      _buildAccessibilityBanner(),
+                      const SizedBox(height: 10),
+                    ],
                     if (_importStatus != null) ...[
                       _buildStatus(),
                       const SizedBox(height: 10),
                     ],
                     _buildApiKeyField(),
+                    const SizedBox(height: 12),
+                    _buildModelConfigFields(),
                     const SizedBox(height: 12),
                     _buildSectionSelector(),
                     const SizedBox(height: 12),
@@ -483,7 +521,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       IconButton(
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
                         tooltip: 'Copy this capture',
                         onPressed: () async {
                           await Clipboard.setData(
@@ -507,7 +548,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFF1C1C27),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFF2A2A3A)),
+                              border: Border.all(
+                                color: const Color(0xFF2A2A3A),
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,6 +596,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildAccessibilityBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFF3D1F00), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFF8C00))),
+      child: Row(children: [
+        const Icon(Icons.accessibility_new, color: Color(0xFFFF8C00), size:18),
+        const SizedBox(width:8),
+        const Expanded(child: Text('Accessibility service disabled — tap to enable', style: TextStyle(color: Colors.white, fontSize:12))),
+        TextButton(onPressed: () async { await ScreenCaptureService.openAccessibilitySettings(); await Future.delayed(const Duration(seconds:1)); _checkAccessibility(); }, child: const Text('Enable')),
+      ]),
+    );
+  }
+
   Widget _buildCaptureControls() {
     return Container(
       width: double.infinity,
@@ -564,8 +620,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.screen_search_desktop_rounded,
-              color: Colors.white.withAlpha(153), size: 16),
+          Icon(
+            Icons.screen_search_desktop_rounded,
+            color: Colors.white.withAlpha(153),
+            size: 16,
+          ),
           const SizedBox(width: 6),
           const Expanded(
             child: Text(
@@ -579,7 +638,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           TextButton.icon(
-              onPressed: () async {
+            onPressed: () async {
               setState(() => _isCapturing = !_isCapturing);
               try {
                 if (_isCapturing) {
@@ -638,8 +697,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Column(
@@ -655,7 +717,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Text(
-                    'Powered by Gemini',
+                    'NVIDIA NIM',
                     style: TextStyle(
                       color: Colors.white.withAlpha(128),
                       fontSize: 12,
@@ -678,11 +740,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => JobFeedScreen(
-                        jobService: _jobFeedService,
-                        onTailor: (job) {
-                          Navigator.of(context).pop();
-                          _onTailorPressed(jobDescription: job.description);
+                      builder: (_) => JobsListScreen(
+                        onTailor: (Job job) async {
+                          await _onTailorPressed(
+                            jobDescription: job.description,
+                          );
                         },
                       ),
                     ),
@@ -705,12 +767,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-          'Capture text from the screen, confirm the selection, and Gemini will tailor the resume from that text.',
-          style: TextStyle(
-            color: Colors.white.withAlpha(153),
-            fontSize: 14,
-            height: 1.55,
-          ),
+            'Capture text from the screen, confirm the selection, and NVIDIA NIM will tailor the resume from that text.',
+            style: TextStyle(
+              color: Colors.white.withAlpha(153),
+              fontSize: 14,
+              height: 1.55,
+            ),
           ),
         ],
       ),
@@ -727,14 +789,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: Color(0xFFFF6B6B), size: 18),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFFF6B6B),
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _errorMessage!,
-              style:
-                  const TextStyle(color: Color(0xFFFF6B6B), fontSize: 13),
+              style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 13),
             ),
           ),
         ],
@@ -748,11 +812,14 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.vpn_key_rounded,
-                color: Color(0xFF3ECFCF), size: 16),
+            const Icon(
+              Icons.vpn_key_rounded,
+              color: Color(0xFF3ECFCF),
+              size: 16,
+            ),
             const SizedBox(width: 6),
             const Text(
-              'Gemini API Key',
+              'NVIDIA API Key',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 13,
@@ -781,7 +848,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 1.65,
             ),
             decoration: InputDecoration(
-              hintText: 'Paste your Gemini API key…',
+              hintText: 'Paste your NVIDIA API key…',
               hintStyle: TextStyle(
                 color: Colors.white.withAlpha(77),
                 fontSize: 13.5,
@@ -855,7 +922,8 @@ class _HomeScreenState extends State<HomeScreen> {
             disabledBackgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
           child: _isLoading
               ? const Row(
@@ -871,7 +939,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     SizedBox(width: 12),
                     Text(
-                      'Gemini is tailoring…',
+                      'NVIDIA NIM is tailoring…',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 15,
@@ -883,8 +951,11 @@ class _HomeScreenState extends State<HomeScreen> {
               : const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.auto_awesome_rounded,
-                        color: Colors.white, size: 20),
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'Tailor My Resume',
@@ -903,7 +974,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSectionSelector() {
-    final availableSections = ['Summary', 'Skills', 'Experience', 'Projects', 'Open Source', 'Education'];
+    final availableSections = [
+      'Summary',
+      'Skills',
+      'Experience',
+      'Projects',
+      'Open Source',
+      'Education',
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -951,7 +1029,9 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: isSelected ? const Color(0xFF6C63FF) : const Color(0xFF2A2A38),
+                  color: isSelected
+                      ? const Color(0xFF6C63FF)
+                      : const Color(0xFF2A2A38),
                 ),
               ),
             );
@@ -961,14 +1041,45 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  List<String> _availableModels = List.from(NvidiaModelsService.curated);
+  bool _modelsLoading = false;
+
+  Future<void> _refreshModels() async {
+    setState(() => _modelsLoading = true);
+    final models = await NvidiaModelsService.fetch();
+    if (!mounted) return;
+    setState(() { _availableModels = models; _modelsLoading = false; });
+  }
+
+  Widget _buildModelConfigFields() {
+    final current = _modelController.text.trim().isEmpty ? AiModelConfig.defaultModel : _modelController.text.trim();
+    if (!_availableModels.contains(current)) _availableModels = [current, ..._availableModels];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF15151D), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF2A2A3A))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [const Icon(Icons.api_rounded, color: Color(0xFF3ECFCF), size: 16), const SizedBox(width: 6), const Expanded(child: Text('Model Configuration', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))), if (_modelsLoading) const SizedBox(width:14,height:14,child:CircularProgressIndicator(strokeWidth:2)) else IconButton(icon: const Icon(Icons.refresh, size:16, color: Colors.white70), tooltip: 'Refresh NVIDIA models', onPressed: _refreshModels)]),
+        const SizedBox(height: 12),
+        TextField(controller: _endpointController, style: const TextStyle(color: Colors.white, fontSize: 12), decoration: InputDecoration(labelText: 'API Endpoint', hintText: AiModelConfig.defaultEndpoint, labelStyle: TextStyle(color: Colors.white.withAlpha(120)), hintStyle: TextStyle(color: Colors.white.withAlpha(60), fontSize: 11), filled: true, fillColor: const Color(0xFF1A1A24), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2A2A38))), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10))),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(value: current, isExpanded: true, dropdownColor: const Color(0xFF1A1A24), decoration: InputDecoration(labelText: 'Model', labelStyle: TextStyle(color: Colors.white.withAlpha(120)), filled: true, fillColor: const Color(0xFF1A1A24), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2A2A38))), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)), style: const TextStyle(color: Colors.white, fontSize: 12), items: _availableModels.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis))).toList(), onChanged: (v){ if(v!=null) setState(()=>_modelController.text=v); }),
+        const SizedBox(height: 6),
+        Text('Auto-rotation: on error, next model is tried automatically. Tap refresh to fetch latest NVIDIA NIM models.', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 11)),
+      ]),
+    );
+  }
+
   Widget _buildCustomInstructionsField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.edit_note_rounded,
-                color: Color(0xFF6C63FF), size: 16),
+            const Icon(
+              Icons.edit_note_rounded,
+              color: Color(0xFF6C63FF),
+              size: 16,
+            ),
             const SizedBox(width: 6),
             const Text(
               'Custom Build Instructions',
@@ -997,7 +1108,8 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 1.5,
             ),
             decoration: InputDecoration(
-              hintText: 'e.g. "Focus more on leadership skills" or "Keep it concise"',
+              hintText:
+                  'e.g. "Focus more on leadership skills" or "Keep it concise"',
               hintStyle: TextStyle(
                 color: Colors.white.withAlpha(77),
                 fontSize: 13,
@@ -1031,10 +1143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  entry.text,
-                  style: const TextStyle(color: Colors.white),
-                ),
+                Text(entry.text, style: const TextStyle(color: Colors.white)),
                 const SizedBox(height: 12),
                 const Text(
                   'Proceed with this captured text and generate the resume?',
@@ -1067,8 +1176,5 @@ class _CapturedEntry {
   final DateTime timestamp;
   final String text;
 
-  const _CapturedEntry({
-    required this.timestamp,
-    required this.text,
-  });
+  const _CapturedEntry({required this.timestamp, required this.text});
 }

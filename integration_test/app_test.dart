@@ -29,12 +29,6 @@ void main() {
   });
 
   testWidgets('smoke: uses mock Gemini and navigates to preview', (tester) async {
-    await tester.pumpWidget(
-      ResumeTailorApp(
-        tailorResume: mockTailorResume,
-        saveJournal: mockSaveJournal,
-      ),
-    );
 
     await tester.enterText(find.byType(TextField).at(0), 'test-key');
     await tester.enterText(find.byType(TextField).at(1), 'My JD text');

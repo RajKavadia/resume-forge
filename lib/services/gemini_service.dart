@@ -1,160 +1,77 @@
-import 'dart:developer' as developer;
+﻿// Prompt builder retained for NVIDIA NIM; Gemini SDK implementation removed.
 
-import 'package:flutter/services.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'nvidia_service.dart';
 
+/// Compatibility facade; generation is now handled by NVIDIA NIM.
 class GeminiService {
-  /// Calls Gemini to tailor the resume HTML for the provided [jobDescription].
-  ///
-  /// Pass [apiKey] from user input (do not bundle it in assets).
-  ///
-  /// For tests, you can provide [baseHtmlOverride] and/or [generateOverride]
-  /// to avoid network calls.
-  /// Calls Gemini to tailor the resume HTML for the provided [jobDescription].
-  ///
-  /// [sectionsToOptimize] specifies which parts of the resume should be tailored.
-  /// If empty, it defaults to optimizing everything.
-  static Future<String> tailorResume(String jobDescription, {
-    required String apiKey,
-    List<String> sectionsToOptimize = const [],
-    String customInstructions = '',
-    String? baseHtmlOverride,
-    Future<String> Function(String prompt)? generateOverride,
-  }) async {
-    developer.log(
-      'Starting tailorResume',
-      name: 'ResumeForge.GeminiService',
-      error: {
-        'jobDescriptionLength': jobDescription.length,
-        'sectionsToOptimize': sectionsToOptimize,
-        'hasCustomInstructions': customInstructions.isNotEmpty,
-      },
-    );
-    if (apiKey
-        .trim()
-        .isEmpty) {
-      throw Exception('API key is required.');
-    }
-
-    final String baseHtml = baseHtmlOverride ??
-        await rootBundle.loadString('assets/Raj_Kavadia_Resume_ATS.html');
-
-    final model = GenerativeModel(
-      model: 'gemini-1.5-flash',
-      apiKey: apiKey.trim(),
-    );
-
-    final prompt = _buildPrompt(baseHtml, jobDescription, sectionsToOptimize, customInstructions);
-    final raw = generateOverride != null
-        ? await generateOverride(prompt)
-        : (await model.generateContent([Content.text(prompt)])).text ?? '';
-
-    developer.log(
-      'Gemini returned response',
-      name: 'ResumeForge.GeminiService',
-      error: {'responseLength': raw.length},
-    );
-    return _stripMarkdownFences(raw);
-  }
-
-  static String _buildPrompt(String baseHtml, String jobDescription, List<String> sectionsToOptimize, String customInstructions) {
-    return buildResumePrompt(baseHtml, jobDescription, sectionsToOptimize, customInstructions);
-  }
-
-  static String _stripMarkdownFences(String text) {
-    return text
-        .replaceAll(RegExp(r'```html\s*', caseSensitive: false), '')
-        .replaceAll(RegExp(r'```\s*'), '')
-        .trim();
-  }
+  static Future<String> tailorResume(String jobDescription, {required String apiKey, List<String> sectionsToOptimize = const [], String customInstructions = '', String? baseHtmlOverride, Future<String> Function(String prompt)? generateOverride}) => NvidiaService.tailorResume(jobDescription, apiKey: apiKey, sectionsToOptimize: sectionsToOptimize, customInstructions: customInstructions, baseHtmlOverride: baseHtmlOverride, generateOverride: generateOverride);
 }
 
+
 String buildResumePrompt(String baseHtml, String jobDescription, List<String> sectionsToOptimize, String customInstructions) {
-  final sectionsText = sectionsToOptimize.isEmpty 
-      ? "ALL SECTIONS" 
-      : sectionsToOptimize.join(", ");
-  
+  final sectionsText = sectionsToOptimize.isEmpty ? "ALL SECTIONS" : sectionsToOptimize.join(", ");
   final optimizationRule = sectionsToOptimize.isEmpty
       ? "Rewrite the Summary, Skills, Experience, and Projects sections to maximize matching with the JD."
       : "ONLY optimize the following sections: $sectionsText. ALL OTHER SECTIONS MUST STAY EXACTLY AS THEY ARE IN THE BASE HTML.";
-
   final customRule = customInstructions.trim().isNotEmpty
-      ? "\n\nUSER CUSTOM INSTRUCTIONS (PRIORITIZE THESE):\n$customInstructions\n"
+      ? "\n\nUSER CUSTOM INSTRUCTIONS (HIGHEST PRIORITY - MUST FOLLOW):\n$customInstructions\n"
       : "";
-
   return '''
-You are a dual-expert system combining:
-- A Senior ATS Engineer who has built and tuned ATS parsers (Workday, Taleo, Greenhouse, Lever, iCIMS)
-- A Technical Recruiter with experience at top tech firms (Google, Meta, OpenAI)
+You are a WORLD-CLASS Resume Strategist operating as two experts simultaneously:
+1. Senior ATS Engineer — built/tuned parsers for Workday, Taleo, Greenhouse, Lever, iCIMS, Oracle HCM. You know exactly how keyword extraction, TF-IDF weighting, section parsing, and ranking algorithms work.
+2. FAANG Technical Recruiter & Hiring Manager — you screen 100+ resumes/day and know what gets a callback in <7 seconds.
 
-YOUR TASK:
-Analyse the JOB DESCRIPTION and rewrite the BASE RESUME HTML to maximise both ATS parse score AND human recruiter impact.
+GOAL: Transform BASE RESUME HTML into a highly ATS-compliant + highly JD-compliant resume that covers 100% of topics/skills/requirements mentioned in the JOB DESCRIPTION while remaining 100% truthful to the candidate's actual background (rephrase/reframe, NEVER invent employers, degrees, or dates).
+
+═══════════════════════════════════════════════
+CRITICAL RULES — MUST FOLLOW ALL:
+═══════════════════════════════════════════════
+
+1. FULL JD COVERAGE (NON-NEGOTIABLE):
+   - Extract EVERY distinct topic from JD: hard skills, tools, frameworks, languages, methodologies, soft skills, domain knowledge, certifications, responsibilities, and implicit expectations (infer company type, product, scale).
+   - Map each JD topic to the resume. Every JD keyword/topic MUST appear verbatim at least once in the tailored resume where truthful mapping is possible. Do not omit any JD-required skill — incorporate via rewording existing experience/skills/summary.
+   - Maintain a mental checklist: if JD says "Kotlin, Compose, CI/CD, Agile, FinTech" — all 5 must appear.
+   - If candidate lacks a JD skill entirely, do NOT fabricate it; instead emphasize the closest transferable skill and phrase as "exposure/familiarity" only if defensible — otherwise omit fabrication but keep all other topics.
+   - CLEAN JD ANNOTATIONS: Strip all JD meta-annotations like "(mandatory)", "(required)", "(preferred)", "(nice to have)", "(must have)" from keywords before inserting into resume. NEVER output "State management (mandatory)" — output "State management" cleanly. Same for any skill with parenthetical tags.
+
+2. ATS COMPLIANCE (MAXIMIZE PARSE SCORE):
+   - Keep the EXACT HTML structure, CSS classes, and section headings (h2 text: Summary, Skills, Experience, Projects and Published Apps, Open Source Projects, Education). Do NOT rename sections — ATS maps by heading.
+   - Single-column layout only, no tables, no textboxes, no headers/footers, no images/icons.
+   - Use standard section order already in base HTML. Preserve contact info + links.
+   - Inject JD keywords naturally in context (not keyword-stuffed lists) — ATS weights keywords in Experience bullets highest, then Skills, then Summary.
+   - Expand Skills section to include every JD-relevant skill that candidate already possesses (normalize synonyms: e.g. JD "CI/CD" → ensure "CI/CD, GitHub Actions"; JD "cross-platform" → "Flutter, KMP").
+   - Use exact JD phrasing for acronyms + expanded form where helpful: "CI/CD (Continuous Integration/Continuous Deployment)".
+   - Keep bullet count per role 4-7; start each bullet with strong action verb; include metrics where present; add tool/technology in parentheses or inline for parser extraction.
+   - No invented dates/companies/degrees. Keep all original employment dates and company names EXACTLY.
+
+3. EXPERIENCE TAILORING PER JD + COMPANY:
+   - Infer company from JD (company name, industry, product, stage). If company name present, subtly align language to that company's domain/stack/culture (e.g. FinTech JD → emphasize "loan origination, VAPT, AES encryption, payment gateways"; SaaS JD → emphasize "multi-tenant, WebSockets, B2B").
+   - Rewrite EVERY bullet in Experience to mirror JD responsibilities using candidate's REAL accomplishments. Reframe same work with JD terminology.
+     Example: JD asks "built scalable microservices" + candidate bullet "Designed REST API layers with Retrofit" → rewrite to "Designed scalable microservices-backed REST API layers with Retrofit/OkHttp powering FinTech microservices, reducing latency 25%".
+   - Prioritize JD's top 3-5 responsibilities — allocate 2-3 bullets per role that directly echo them.
+   - Where possible, reorder bullets within each role so most JD-relevant appear first.
+   - Summary: 3-4 lines, must contain JD's role title, 2-3 must-have skills, domain (e.g. FinTech/SaaS), and years of experience. Mirror JD's language.
+   - Projects section: emphasize projects most relevant to JD domain/stack; reword descriptions to highlight overlapping tech.
+
+4. TRUTHFULNESS & CONSTRAINTS:
+   - NEVER add a new employer, role, project, or degree. NEVER change dates.
+   - You MAY rephrase, reorder, and add JD keywords to existing bullets/skills/summary.
+   - Keep quantifiable achievements (%, downloads, ratings) intact — they boost recruiter impact.
+   - Preserve original HTML/CSS — return ONLY the complete, valid HTML document. No markdown fences, no commentary, no explanation.
+
+5. OUTPUT:
+   - Return ONLY the complete raw HTML (starting with <!DOCTYPE html>). Preserve <style> block as-is unless minor text changes needed.
+   - Ensure valid HTML, ATS-safe.
 
 OPTIMIZATION SCOPE:
 $optimizationRule
 $customRule
 
-════════════════════════════════════════
-PHASE 1 — JD DECONSTRUCTION (internal reasoning, not output)
-════════════════════════════════════════
-Before rewriting, mentally extract:
-  A. HARD REQUIREMENTS  — Must-have skills, tools, years of experience, degrees
-  B. SOFT REQUIREMENTS  — Preferred/nice-to-have from "preferred" or "bonus" sections
-  C. POWER VERBS        — Action verbs the JD itself uses (mirror these exactly)
-  D. CULTURE SIGNALS    — Words like "fast-paced", "collaborative", "ownership", "scale"
-  E. METRIC TYPES       — What does this role measure? (latency, revenue, DAU, uptime, NPS…)
-  F. SENIORITY SIGNALS  — Leadership, mentorship, cross-functional, strategic indicators
-
-════════════════════════════════════════
-PHASE 2 — ATS TECHNICAL RULES
-════════════════════════════════════════
-1. KEYWORD DENSITY: Integrate the top 20 ATS keywords naturally. Each hard requirement keyword must appear AT LEAST TWICE across the document (once in Skills, once in Experience/Summary).
-2. EXACT-MATCH STRINGS: Use the JD's exact phrasing for tools and technologies (e.g. if JD says "React.js", do not write "ReactJS" or "React").
-3. SKILLS TAXONOMY: Reorder skill categories — most JD-critical skills FIRST. Add any genuinely applicable missing keywords.
-4. TITLE MIRRORING: If the candidate's current/past titles are close but not exact to the JD title, add the JD title in parentheses where contextually honest — e.g. "Senior Engineer (Full-Stack)".
-5. NO ATS TRAPS: Never use tables, columns, headers/footers, text boxes, or images to hold key information — ATS parsers skip them. (Apply only if the HTML structure allows; do not break the layout.)
-
-════════════════════════════════════════
-PHASE 3 — CONTENT REWRITING RULES
-════════════════════════════════════════
-6. SUMMARY — Rewrite as a 3-sentence executive pitch:
-   • Sentence 1: Years of experience + exact JD title + top 2 hard skills from JD
-   • Sentence 2: Most impressive quantified achievement relevant to THIS role
-   • Sentence 3: Mirror 2 culture/seniority signals from the JD
-
-7. EXPERIENCE BULLETS — Use the CAR+M formula:
-   CONTEXT → ACTION → RESULT + METRIC
-   - Start every bullet with a JD power verb (from your Phase 1 extraction)
-   - Each bullet must contain at least one number, %, \$, or scale indicator
-   - Replace weak verbs (worked on, helped, assisted, involved) with strong ones
-   - Prioritise bullets that map to hard requirements; move or compress unrelated ones
-
-8. PROJECTS — Lead with the most JD-relevant project. Rewrite bullets to surface:
-   - Technologies that exactly match JD keywords
-   - Scale or impact metrics
-   - Problem → Solution → Outcome structure
-
-9. EDUCATION — If JD mentions preferred degrees or certifications, ensure they are prominently visible and keyword-matched.
-
-════════════════════════════════════════
-PHASE 4 — RAJ'S UNIQUE VALUE PROPOSITIONS (Must highlight if relevant to JD)
-════════════════════════════════════════
-10. AI-ASSISTED DEVELOPMENT: Strongly highlight the use of Claude, MCP (Model Context Protocol), and AI-driven automation (Playwright/Node.js) if the JD mentions "productivity," "modern tools," or "innovation."
-11. MASSIVE SCALE: Emphasize the "50L+ downloads" for SBI/PNB/Tradgo apps when applying to high-scale or enterprise roles.
-12. ARCHITECTURAL LEADERSHIP: Focus on "Multi-module architecture," "Clean Architecture," and "Mentoring 5+ engineers" for Senior/Lead roles.
-
-════════════════════════════════════════
-PHASE 5 — ABSOLUTE CONSTRAINTS
-════════════════════════════════════════
-13. PRESERVE STRUCTURE: Return the COMPLETE HTML. Do NOT alter any HTML tags, CSS classes, inline styles, or the <style> block.
-14. PRESERVE IDENTITY: Do NOT change name, contact info, company names, job titles, or dates.
-15. ZERO HALLUCINATION: Do NOT invent roles, companies, projects, degrees, certifications, or metrics. Only reframe what genuinely exists.
-16. OUTPUT FORMAT: Return ONLY raw HTML starting with <!DOCTYPE html> and ending with </html>. No markdown. No commentary. No preamble.
-
 BASE RESUME HTML:
 $baseHtml
 
-JOB DESCRIPTION:
+JOB DESCRIPTION (ANALYZE DEEPLY — EXTRACT COMPANY, ROLE, ALL TOPICS):
 $jobDescription
 ''';
 }
+

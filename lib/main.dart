@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:resumetailor/services/gemini_service.dart';
+import 'package:resumetailor/services/nvidia_service.dart';
 import 'package:resumetailor/screens/home_screen.dart';
+import 'package:resumetailor/services/background_job_service.dart';
+import 'package:resumetailor/services/job_monitoring_config_service.dart';
+import 'package:resumetailor/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
+  await BackgroundJobService.initialize();
+  final monitoringConfig = await JobMonitoringConfigService.load();
+  if (monitoringConfig.backgroundEnabled) {
+    await BackgroundJobService.enable(minutes: monitoringConfig.pollIntervalMinutes);
+  }
   runApp(const ResumeTailorApp());
 }
 
@@ -38,7 +47,7 @@ class ResumeTailorApp extends StatelessWidget {
         ),
       ),
       home: HomeScreen(
-        tailorResume: tailorResume ?? GeminiService.tailorResume,
+        tailorResume: tailorResume ?? NvidiaService.tailorResume,
         saveJournal: saveJournal ?? defaultSaveJournal,
       ),
     );

@@ -1,5 +1,5 @@
 name: resumetailor
-description: "AI-powered resume tailor using Gemini API — Android & Web"
+description: "AI-powered resume tailor using NVIDIA NIM — Android & Web"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -17,9 +17,10 @@ dependencies:
   intl: ^0.19.0
   url_launcher: ^6.3.1
   sqflite: ^2.3.3+1
+  flutter_local_notifications: 19.4.0
+  workmanager: 0.10.10
 
   # AI
-  google_generative_ai: ^0.4.6
 
   # WebView (supports Android + Web via iframe)
   flutter_inappwebview: ^6.1.5
@@ -43,6 +44,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/Raj_Kavadia_Resume_ATS.html
+    - assets/automate_linkedin.py
+    - assets/automate_naukri.py
+    - assets/automate_monitor.py
+    - assets/automate_database.py
+    - assets/automate_notifications.py
   fonts:
     - family: Roboto
       fonts:

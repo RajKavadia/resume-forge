@@ -50,8 +50,9 @@ class ScreenCaptureAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         Log.i(tag, "onDestroy")
-        mainHandler.removeCallbacks(heartbeat)
+        mainHandler.removeCallbacksAndMessages(null)
         removeControlOverlay()
+        OverlayCaptureService.stop(this)
         lastRoot?.recycle()
         lastRoot = null
         instance = null
@@ -59,8 +60,12 @@ class ScreenCaptureAccessibilityService : AccessibilityService() {
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
-        Log.i(tag, "onUnbind")
-        return super.onUnbind(intent)
+        // Ask Android to call onServiceConnected again if the system rebinds us.
+        // Accessibility cannot be force-enabled by an app; the user controls the
+        // setting, while this return value makes recovery after a transient bind
+        // loss possible.
+        Log.i(tag, "onUnbind; requesting system rebind")
+        return true
     }
 
     private fun captureVisibleText(): String {
@@ -250,7 +255,7 @@ class ScreenCaptureAccessibilityService : AccessibilityService() {
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     isDragging = false
-                    return false
+                    return true
                 }
 
                 MotionEvent.ACTION_MOVE -> {
@@ -271,8 +276,10 @@ class ScreenCaptureAccessibilityService : AccessibilityService() {
                 MotionEvent.ACTION_UP -> {
                     if (isDragging) {
                         isDragging = false
-                        return true
+                    } else {
+                        view.performClick()
                     }
+                    return true
                 }
             }
             return false

@@ -1,0 +1,267 @@
+{
+  "pbtResults": {
+    "4.4 Add a property test for failure projection: after a failed required interaction, later unattempted required steps are blocked and the run cannot be successful.": {
+      "status": "failed",
+      "failingExample": "Targeted command runner terminated both `dart test test/ui_driver_test.dart` and `dart test --reporter expanded test/ui_driver_test.dart` with exit code -1 before Dart emitted test output; no property counterexample was produced.",
+      "lastRunTimestamp": 1789380780418
+    },
+    "5.4 Add unit and property tests for provenance classification, HTML marker completeness, and PDF no-download behavior.": {
+      "status": "not_run",
+      "lastRunTimestamp": 1789380780954
+    },
+    "6.3 Add unit/integration tests for success, preflight stop, launch stop, interaction stop, live-service failure, HTML failure, optional PDF absence, record persistence, and repeated-run isolation.": {
+      "status": "not_run",
+      "failingExample": "Targeted Dart test invocation could not start: the command runner returned exit code -1 and echoed a duplicated command string without Dart test output.",
+      "lastRunTimestamp": 1789381028037
+    }
+  },
+  "executionHistory": {
+    "1.1 Create the host CLI entrypoint, library/test directories, typed interfaces, and process boundary for ADB commands without changing `lib/`, `android/`, `ios/`, or application test code.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618603
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376631392
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376814644
+      }
+    ],
+    "1.2 Define `Scenario`, selector/action specifications, device constraints, marker sets, artifact paths, timeout policy, secret reference, optional flags, `StepResult`, `RunRecord`, and artifact metadata models.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618653
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376821553
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376991802
+      }
+    ],
+    "2.1 Implement non-secret scenario-file parsing and validation for package name, designated device identity, launch command, selector hints, action sequence, tailoring input references, NVIDIA endpoint identity, marker sets, remote artifact paths, timeouts, and output root.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618723
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376636332
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376815165
+      }
+    ],
+    "2.2 Implement just-in-time API-key reference resolution and secret-safe command/action/error serialization.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618765
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376821586
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376992068
+      }
+    ],
+    "3.1 Implement typed ADB operations for device listing/snapshot, app launch, accessibility XML dump, tap, text input, drag, scroll, and remote `stat`.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618807
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376643022
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376815235
+      }
+    ],
+    "3.2 Implement preflight and launch gates for the configured authorized, online physical serial, optional model/Android/screen constraints, package, and launch result.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618861
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376821778
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376992223
+      }
+    ],
+    "4.1 Parse Flutter semantics/accessibility XML into a normalized node tree containing text, content description, role/class, enabled/clickable/editable state, and bounds.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618897
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376996805
+      },
+      {
+        "executionId": "3a92a93f-e96f-4d3a-8eb3-aa33c587a3b5",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789377897961
+      }
+    ],
+    "4.2 Implement the UI driver for the configured physical-device sequence: API-key text input, tailoring text input, taps, drag, scroll, submit, and generated-resume-state polling.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618930
+      }
+    ],
+    "5.1 Implement a passive live-service observer/classifier that does not proxy, rewrite, mock, replay, or replace the app request.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618964
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376996955
+      },
+      {
+        "executionId": "3a92a93f-e96f-4d3a-8eb3-aa33c587a3b5",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789377899061
+      }
+    ],
+    "5.2 Implement HTML discovery/inspection after the app reaches generated output.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376618997
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376997294
+      },
+      {
+        "executionId": "3a92a93f-e96f-4d3a-8eb3-aa33c587a3b5",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789377899960
+      }
+    ],
+    "5.3 Implement metadata-only PDF checking with remote `stat`.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619036
+      },
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376997221
+      },
+      {
+        "executionId": "3a92a93f-e96f-4d3a-8eb3-aa33c587a3b5",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789377900704
+      }
+    ],
+    "6.1 Implement the ordered orchestrator: create run context, preflight, launch, inspect selectors, inject key, enter tailoring input, perform gestures/submit, observe live service, validate HTML, stat PDF, and finalize the record.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619073
+      }
+    ],
+    "6.2 Add CLI commands for preflight, one full cycle, and explicit cleanup limited to generated test-output roots.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619110
+      }
+    ],
+    "8.1 Add a non-secret scenario configuration for the designated physical device, API-key reference, tailoring inputs, selector hints/actions, NVIDIA endpoint environment, HTML markers, remote HTML/PDF paths, timeouts, and optional flags.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619163
+      }
+    ],
+    "8.2 Wire concrete adapters and validators into the CLI and add host-side automated test commands for the mandatory pure logic and adapter boundaries.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619239
+      }
+    ],
+    "8.3 Add the runnable physical-device smoke/E2E command and its result assertions for preflight, launch, semantics/XML discovery, key and tailoring input, gestures, live NVIDIA path, non-empty tailored HTML/markers, and PDF remote metadata.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619274
+      }
+    ],
+    "9. Checkpoint - Ensure mandatory host tests pass, the harness is source-isolated, and the task plan's required physical-device path is fully wired.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619316
+      }
+    ],
+    "10. Final checkpoint - Ensure the compact record, live-path classification, HTML marker validation, PDF metadata-only check, and optional-capability separation are complete.": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376619348
+      }
+    ],
+    "1. Create the isolated Dart host-harness foundation": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376991841
+      }
+    ],
+    "2. Implement safe scenario and runtime-secret loading": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376992137
+      }
+    ],
+    "3. Implement the ADB device adapter and physical-device preflight": [
+      {
+        "executionId": "dd4daccc-dea3-4d04-baac-264da10c0542",
+        "chatSessionId": "sess_d8edb4ea-733e-4b53-a483-471de6655a88",
+        "timestamp": 1789376992271
+      }
+    ]
+  }
+}

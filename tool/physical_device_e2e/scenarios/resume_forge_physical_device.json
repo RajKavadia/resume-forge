@@ -1,0 +1,137 @@
+{
+  "id": "resume-forge-designated-physical-device",
+  "package_name": "com.example.resumetailor",
+  "device": {
+    "serial": "192.168.1.3:46009",
+    "model": "25053PC47I"
+  },
+  "launch_command": "adb -s 192.168.1.3:46009 shell monkey -p com.example.resumetailor 1",
+  "api_key_ref": "env:NVIDIA_API_KEY",
+  "tailoring_inputs": {
+    "resume_ref": "asset:Raj_Kavadia_Resume_ATS.html",
+    "job_ref": "env:PHYSICAL_DEVICE_E2E_TAILORING_TEXT"
+  },
+  "nvidia_endpoint": {
+    "host": "integrate.api.nvidia.com",
+    "environment": "production"
+  },
+  "selectors": [
+    {
+      "id": "api-key-field",
+      "label": "NVIDIA API Key",
+      "text": "Paste your NVIDIA API key…",
+      "role": "android.widget.EditText",
+      "required": true
+    },
+    {
+      "id": "skills-filter",
+      "text": "Skills",
+      "role": "android.widget.CompoundButton",
+      "required": true
+    },
+    {
+      "id": "custom-instructions-field",
+      "label": "Custom Build Instructions",
+      "text": "e.g. \"Focus more on leadership skills\" or \"Keep it concise\"",
+      "role": "android.widget.EditText",
+      "required": true
+    },
+    {
+      "id": "capture-start-button",
+      "text": "Start",
+      "role": "android.widget.Button",
+      "required": true
+    },
+    {
+      "id": "tailor-resume-button",
+      "text": "Tailor My Resume",
+      "role": "android.widget.Button",
+      "required": true
+    },
+    {
+      "id": "generated-resume-heading",
+      "text": "Tailored Resume",
+      "role": "android.widget.TextView",
+      "required": true
+    }
+  ],
+  "actions": [
+    {
+      "id": "enter-api-key",
+      "type": "text",
+      "selector": "api-key-field",
+      "required": true
+    },
+    {
+      "id": "focus-skills-filter",
+      "type": "tap",
+      "selector": "skills-filter",
+      "required": true
+    },
+    {
+      "id": "enter-custom-instructions",
+      "type": "text",
+      "selector": "custom-instructions-field",
+      "required": true
+    },
+    {
+      "id": "scroll-to-capture-controls",
+      "type": "scroll",
+      "value": "540,2100->540,820@500",
+      "required": true
+    },
+    {
+      "id": "drag-capture-panel",
+      "type": "drag",
+      "value": "540,1500->540,1180@350",
+      "required": false
+    },
+    {
+      "id": "start-screen-capture",
+      "type": "tap",
+      "selector": "capture-start-button",
+      "required": true
+    },
+    {
+      "id": "scroll-to-submit",
+      "type": "scroll",
+      "value": "540,820->540,2100@500",
+      "required": true
+    },
+    {
+      "id": "submit-tailoring",
+      "type": "submit",
+      "selector": "tailor-resume-button",
+      "required": true
+    },
+    {
+      "id": "wait-for-generated-resume",
+      "type": "wait",
+      "selector": "generated-resume-heading",
+      "required": true
+    }
+  ],
+  "html_markers": {
+    "heading": ["Raj Kavadia", "Professional Summary"],
+    "skills": ["Skills", "Technical Skills"],
+    "experience": ["Experience", "Employment"],
+    "keyword": ["leadership"]
+  },
+  "artifact_paths": {
+    "html": "/storage/emulated/0/Download/ResumeForgeAI/latest-tailored-resume.html",
+    "pdf": "/storage/emulated/0/Download/ResumeForge/latest-tailored-resume.pdf"
+  },
+  "timeouts": {
+    "adb": 15000,
+    "interaction": 30000,
+    "generation": 210000
+  },
+  "output_root": "tool/physical_device_e2e/out",
+  "optional": {
+    "recording": false,
+    "diagnostics": false,
+    "validation_tests": false,
+    "source_tracking": false,
+    "verdict": false
+  }
+}

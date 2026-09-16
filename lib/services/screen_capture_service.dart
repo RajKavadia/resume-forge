@@ -48,6 +48,13 @@ class ScreenCaptureService {
     return _methods.invokeMethod('openAppNotificationSettings');
   }
 
+  static Future<bool> isAccessibilityEnabled() async {
+    try {
+      final v = await _methods.invokeMethod<bool>('isAccessibilityEnabled');
+      return v == true;
+    } catch (_) { return false; }
+  }
+
   static Future<void> updateStatus(String message) {
     developer.log(
       'updateStatus',

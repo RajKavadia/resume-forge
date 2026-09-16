@@ -63,6 +63,11 @@ object CaptureBridge {
                         result.success(true)
                     }
 
+                    "isAccessibilityEnabled" -> {
+                        val enabled = isAccessibilityEnabled(appContext)
+                        result.success(enabled)
+                    }
+
                     "updateStatus" -> {
                         val message = call.argument<String>("message").orEmpty()
                         Log.i(TAG, "updateStatus message=$message")
@@ -143,5 +148,11 @@ object CaptureBridge {
             }
         }
         context.startActivity(intent)
+    }
+
+    private fun isAccessibilityEnabled(context: Context): Boolean {
+        val expected = "${context.packageName}/${context.packageName}.capture.ScreenCaptureAccessibilityService"
+        val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
+        return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
     }
 }

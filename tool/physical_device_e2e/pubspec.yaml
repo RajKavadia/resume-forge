@@ -1,0 +1,11 @@
+name: physical_device_e2e
+publish_to: none
+description: Host-side physical Android device E2E harness for Resume Forge.
+environment:
+  sdk: ^3.0.0
+
+dev_dependencies:
+  test: ^1.24.0
+
+# This is intentionally a dependency-free host package for production. Keep application
+# dependencies and test hooks outside this isolated harness.

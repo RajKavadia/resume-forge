@@ -1,0 +1,39 @@
+{
+  "specName": "job-monitoring-integration",
+  "title": "Job Monitoring Integration - Termux Scripts into Resume-Forge",
+  "description": "Integrate LinkedIn and Naukri job monitoring functionality from the automate repository into the resume-forge Flutter application, enabling background job monitoring, notifications, and seamless resume tailoring workflow.",
+  "status": "requirements",
+  "phase": "requirements",
+  "createdAt": "2026-09-09",
+  "updatedAt": "2026-09-09",
+  "author": "resume-forge-team",
+  "workspaceRoot": "c:\\Users\\USER\\Documents\\resume-forge",
+  "sourceRepository": "c:\\Users\\USER\\Documents\\automate",
+  "tags": [
+    "flutter",
+    "android",
+    "job-monitoring",
+    "background-service",
+    "notifications",
+    "database"
+  ],
+  "requirements": {
+    "documented": true,
+    "fileLocation": "requirements.md",
+    "userStories": 8,
+    "acceptanceCriteria": 35
+  },
+  "design": {
+    "documented": false,
+    "fileLocation": "design.md"
+  },
+  "implementation": {
+    "documented": false,
+    "tasks": []
+  },
+  "links": {
+    "sourceAutomate": "c:\\Users\\USER\\Documents\\automate",
+    "referencePython": "automate/monitor.py, automate/linkedin.py, automate/naukri.py",
+    "existingResumeForgeFolders": "lib/screens, lib/services, lib/models"
+  }
+}

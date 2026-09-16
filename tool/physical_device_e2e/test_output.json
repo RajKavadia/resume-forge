@@ -1,0 +1,46 @@
+﻿{"protocolVersion":"0.1.1","runnerVersion":"1.32.0","pid":15828,"type":"start","time":0}
+{"suite":{"id":0,"platform":"vm","path":"test/artifacts_test.dart"},"type":"suite","time":0}
+{"test":{"id":1,"name":"loading test/artifacts_test.dart","suiteID":0,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":1}
+{"count":1,"time":11,"type":"allSuites"}
+{"testID":1,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":494}
+{"group":{"id":2,"suiteID":0,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":18,"line":null,"column":null,"url":null},"type":"group","time":497}
+{"group":{"id":3,"suiteID":0,"parentID":2,"name":"HtmlArtifactInspector","metadata":{"skip":false,"skipReason":null},"testCount":13,"line":7,"column":3,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"group","time":498}
+{"test":{"id":4,"name":"HtmlArtifactInspector inspects HTML and matches all marker categories","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":10,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":499}
+{"testID":4,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":517}
+{"test":{"id":5,"name":"HtmlArtifactInspector fails when HTML artifact is missing","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":38,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":518}
+{"testID":5,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":519}
+{"test":{"id":6,"name":"HtmlArtifactInspector fails when HTML artifact is empty","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":57,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":520}
+{"testID":6,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":521}
+{"test":{"id":7,"name":"HtmlArtifactInspector fails when HTML lacks required structure","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":75,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":521}
+{"testID":7,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":523}
+{"test":{"id":8,"name":"HtmlArtifactInspector fails when missing heading marker category","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":93,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":523}
+{"testID":8,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":524}
+{"test":{"id":9,"name":"HtmlArtifactInspector fails when missing skills marker category","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":120,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":524}
+{"testID":9,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":525}
+{"test":{"id":10,"name":"HtmlArtifactInspector fails when missing experience marker category","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":142,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":525}
+{"testID":10,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":526}
+{"test":{"id":11,"name":"HtmlArtifactInspector fails when missing keyword marker category","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":164,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":527}
+{"testID":11,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":528}
+{"test":{"id":12,"name":"HtmlArtifactInspector marker matching is case-insensitive","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":186,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":529}
+{"testID":12,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":531}
+{"test":{"id":13,"name":"HtmlArtifactInspector handles read failure gracefully","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":209,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":531}
+{"testID":13,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":532}
+{"test":{"id":14,"name":"HtmlArtifactInspector handles exception during read","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":228,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":532}
+{"testID":14,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":534}
+{"test":{"id":15,"name":"HtmlArtifactInspector forDevice factory creates working inspector","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":246,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":534}
+{"testID":15,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":536}
+{"test":{"id":16,"name":"HtmlArtifactInspector requires all four marker categories to pass","suiteID":0,"groupIDs":[2,3],"metadata":{"skip":false,"skipReason":null},"line":264,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":536}
+{"testID":16,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":537}
+{"group":{"id":17,"suiteID":0,"parentID":2,"name":"MarkerResults","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":296,"column":3,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"group","time":537}
+{"test":{"id":18,"name":"MarkerResults passed is true when all categories have matches","suiteID":0,"groupIDs":[2,17],"metadata":{"skip":false,"skipReason":null},"line":297,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":537}
+{"testID":18,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":539}
+{"test":{"id":19,"name":"MarkerResults passed is false when any category is empty","suiteID":0,"groupIDs":[2,17],"metadata":{"skip":false,"skipReason":null},"line":307,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":539}
+{"testID":19,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":540}
+{"group":{"id":20,"suiteID":0,"parentID":2,"name":"ArtifactMetadata","metadata":{"skip":false,"skipReason":null},"testCount":3,"line":343,"column":3,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"group","time":541}
+{"test":{"id":21,"name":"ArtifactMetadata produced is true when exists and bytes > 0","suiteID":0,"groupIDs":[2,20],"metadata":{"skip":false,"skipReason":null},"line":344,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":541}
+{"testID":21,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":542}
+{"test":{"id":22,"name":"ArtifactMetadata produced is false when missing","suiteID":0,"groupIDs":[2,20],"metadata":{"skip":false,"skipReason":null},"line":350,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":543}
+{"testID":22,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":544}
+{"test":{"id":23,"name":"ArtifactMetadata produced is false when zero bytes","suiteID":0,"groupIDs":[2,20],"metadata":{"skip":false,"skipReason":null},"line":356,"column":5,"url":"file:///C:/Users/USER/Documents/resume-forge/tool/physical_device_e2e/test/artifacts_test.dart"},"type":"testStart","time":544}
+{"testID":23,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":545}
+{"success":true,"type":"done","time":550}
