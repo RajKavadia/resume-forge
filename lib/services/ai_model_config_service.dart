@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AiModelConfig {
   final String endpoint;
   final String model;
+  /// May hold multiple NVIDIA keys (comma/newline/semicolon-separated) for rotation.
   final String apiKey;
 
   const AiModelConfig({
@@ -14,6 +15,34 @@ class AiModelConfig {
 
   static const defaultEndpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
   static const defaultModel = 'openai/gpt-oss-20b';
+
+  // --- Speed presets (open-source, local) ---
+  // Desktop / web: Ollama serves OpenAI-compatible API on localhost.
+  static const ollamaDesktopEndpoint =
+      'http://localhost:11434/v1/chat/completions';
+  // Android emulator: host loopback is 10.0.2.2. Physical device: use PC LAN IP.
+  static const ollamaAndroidEndpoint =
+      'http://10.0.2.2:11434/v1/chat/completions';
+  static const ollamaDefaultModel = 'llama3.1:8b';
+  static const ollamaApiKeyPlaceholder = 'ollama';
+
+  // Groq — OpenAI-compatible, open models, separate free quota from NVIDIA NIM.
+  static const groqEndpoint =
+      'https://api.groq.com/openai/v1/chat/completions';
+  // Groq free-tier chat models (verified live against /v1/models).
+  static const groqDefaultModel = 'openai/gpt-oss-20b';
+
+  static bool isLocalEndpoint(String endpoint) {
+    final e = endpoint.trim();
+    return e.contains('localhost') ||
+        e.contains('127.0.0.1') ||
+        e.contains('10.0.2.2');
+  }
+
+  static bool isNvidiaEndpoint(String endpoint) {
+    final e = endpoint.trim().toLowerCase();
+    return e.contains('integrate.api.nvidia.com') || e.contains('api.nvidia.com');
+  }
 
   factory AiModelConfig.defaults({String apiKey = ''}) => AiModelConfig(
         endpoint: defaultEndpoint,

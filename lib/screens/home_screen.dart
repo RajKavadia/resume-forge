@@ -23,6 +23,7 @@ typedef TailorResumeFn =
       String? modelOverride,
       List<String> sectionsToOptimize,
       String customInstructions,
+      void Function(String stage)? onProgress,
     });
 
 typedef SaveJournalFn =
@@ -69,9 +70,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     'Summary',
     'Skills',
     'Experience',
-    'Projects',
-    'Open Source',
-    'Education',
   ];
 
   bool _accessibilityEnabled = true;
@@ -120,6 +118,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         } else if (type == 'status') {
           final message = (event['message'] as String?) ?? '';
           if (!mounted || message.trim().isEmpty) return;
+          // Skip heartbeat noise: rebuilding the whole page every 10s while
+          // typing causes keyboard open/animation jank.
+          if (message.contains('alive') || message.contains('heartbeat')) {
+            return;
+          }
           developer.log(
             'capture status',
             name: 'ResumeForge.Home',
@@ -200,7 +203,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     try {
-      await _updateCaptureStatus('Tailoring resume');
       developer.log(
         'Tailor requested',
         name: 'ResumeForge.Home',
@@ -219,6 +221,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         modelOverride: model.isEmpty ? null : model,
         sectionsToOptimize: _sectionsToOptimize,
         customInstructions: _customInstructionsController.text.trim(),
+        onProgress: (stage) {
+          _updateCaptureStatus(stage);
+        },
       );
       await _updateCaptureStatus('Resume tailored, opening preview');
       developer.log(
@@ -819,7 +824,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             const SizedBox(width: 6),
             const Text(
-              'NVIDIA API Key',
+              'NVIDIA API Key(s)',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 13,
@@ -848,7 +853,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               height: 1.65,
             ),
             decoration: InputDecoration(
-              hintText: 'Paste your NVIDIA API key…',
+              hintText:
+                  'Paste key(s) — comma or newline separated for rotation…',
               hintStyle: TextStyle(
                 color: Colors.white.withAlpha(77),
                 fontSize: 13.5,
@@ -859,6 +865,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
         ),
+
         const SizedBox(height: 8),
         Row(
           children: [
@@ -1051,20 +1058,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() { _availableModels = models; _modelsLoading = false; });
   }
 
+  void _applyPreset(String endpoint, String model, {String? apiKeyIfEmpty}) {
+    setState(() {
+      _endpointController.text = endpoint;
+      _modelController.text = model;
+      if (apiKeyIfEmpty != null && _apiKeyController.text.trim().isEmpty) {
+        _apiKeyController.text = apiKeyIfEmpty;
+      }
+      if (!_availableModels.contains(model)) {
+        _availableModels = [model, ..._availableModels];
+      }
+    });
+  }
+
   Widget _buildModelConfigFields() {
     final current = _modelController.text.trim().isEmpty ? AiModelConfig.defaultModel : _modelController.text.trim();
-    if (!_availableModels.contains(current)) _availableModels = [current, ..._availableModels];
+    // Build a local copy: mutating _availableModels during build forces extra
+    // work on every keyboard open (viewInsets rebuild). Never setState here.
+    final models = <String>[..._availableModels];
+    if (!models.contains(current)) models.insert(0, current);
+    if (!models.contains(AiModelConfig.ollamaDefaultModel)) {
+      models.add(AiModelConfig.ollamaDefaultModel);
+    }
+    if (!models.contains(AiModelConfig.groqDefaultModel)) {
+      models.add(AiModelConfig.groqDefaultModel);
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: const Color(0xFF15151D), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF2A2A3A))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [const Icon(Icons.api_rounded, color: Color(0xFF3ECFCF), size: 16), const SizedBox(width: 6), const Expanded(child: Text('Model Configuration', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))), if (_modelsLoading) const SizedBox(width:14,height:14,child:CircularProgressIndicator(strokeWidth:2)) else IconButton(icon: const Icon(Icons.refresh, size:16, color: Colors.white70), tooltip: 'Refresh NVIDIA models', onPressed: _refreshModels)]),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 4, children: [
+          ActionChip(label: const Text('Groq Fast', style: TextStyle(fontSize: 11)), onPressed: () => _applyPreset(AiModelConfig.groqEndpoint, AiModelConfig.groqDefaultModel)),
+          ActionChip(label: const Text('NVIDIA Fast', style: TextStyle(fontSize: 11)), onPressed: () => _applyPreset(AiModelConfig.defaultEndpoint, AiModelConfig.defaultModel)),
+          ActionChip(label: const Text('Ollama Desktop', style: TextStyle(fontSize: 11)), onPressed: () => _applyPreset(AiModelConfig.ollamaDesktopEndpoint, AiModelConfig.ollamaDefaultModel, apiKeyIfEmpty: AiModelConfig.ollamaApiKeyPlaceholder)),
+          ActionChip(label: const Text('Ollama Android', style: TextStyle(fontSize: 11)), onPressed: () => _applyPreset(AiModelConfig.ollamaAndroidEndpoint, AiModelConfig.ollamaDefaultModel, apiKeyIfEmpty: AiModelConfig.ollamaApiKeyPlaceholder)),
+        ]),
         const SizedBox(height: 12),
         TextField(controller: _endpointController, style: const TextStyle(color: Colors.white, fontSize: 12), decoration: InputDecoration(labelText: 'API Endpoint', hintText: AiModelConfig.defaultEndpoint, labelStyle: TextStyle(color: Colors.white.withAlpha(120)), hintStyle: TextStyle(color: Colors.white.withAlpha(60), fontSize: 11), filled: true, fillColor: const Color(0xFF1A1A24), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2A2A38))), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10))),
         const SizedBox(height: 10),
-        DropdownButtonFormField<String>(value: current, isExpanded: true, dropdownColor: const Color(0xFF1A1A24), decoration: InputDecoration(labelText: 'Model', labelStyle: TextStyle(color: Colors.white.withAlpha(120)), filled: true, fillColor: const Color(0xFF1A1A24), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2A2A38))), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)), style: const TextStyle(color: Colors.white, fontSize: 12), items: _availableModels.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis))).toList(), onChanged: (v){ if(v!=null) setState(()=>_modelController.text=v); }),
+        DropdownButtonFormField<String>(value: current, isExpanded: true, dropdownColor: const Color(0xFF1A1A24), decoration: InputDecoration(labelText: 'Model', labelStyle: TextStyle(color: Colors.white.withAlpha(120)), filled: true, fillColor: const Color(0xFF1A1A24), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2A2A38))), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)), style: const TextStyle(color: Colors.white, fontSize: 12), items: models.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis))).toList(), onChanged: (v){ if(v!=null) setState(()=>_modelController.text=v); }),
         const SizedBox(height: 6),
-        Text('Auto-rotation: on error, next model is tried automatically. Tap refresh to fetch latest NVIDIA NIM models.', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 11)),
+        Text('Race mode: primary + fastest fallback run in parallel, first success wins. Local Ollama = single attempt, ~1-2s.', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 11)),
       ]),
     );
   }
