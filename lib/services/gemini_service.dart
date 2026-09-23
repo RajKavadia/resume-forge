@@ -30,7 +30,7 @@ String buildResumePrompt(
   String customInstructions,
 ) {
   final scope = sectionsToOptimize.isEmpty
-      ? 'Summary, Skills, Experience'
+      ? 'Skills, Experience'
       : sectionsToOptimize.join(', ');
   final custom = customInstructions.trim().isNotEmpty
       ? '\nCUSTOM (highest priority): ${customInstructions.trim()}\n'

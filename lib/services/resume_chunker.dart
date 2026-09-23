@@ -17,17 +17,26 @@ class SplitPageResult {
   final List<ResumeSection> sections;
 }
 
-/// One per-section generation job when the full prompt exceeds [ResumeChunker.maxPromptTokens].
+/// One partial HTML tailor job (Skills, first experience entry, etc.).
 class ResumeSectionChunkJob {
   const ResumeSectionChunkJob({
     required this.heading,
     required this.sectionHtml,
     required this.prompt,
+    required this.mergeId,
+    this.isFirstExperienceEntry = false,
   });
 
+  /// UI / progress label (e.g. "Skills", "Experience (first role)").
   final String heading;
   final String sectionHtml;
   final String prompt;
+  /// Key in the rewrite map: [mergeIdSkills] or [mergeIdExperienceFirst].
+  final String mergeId;
+  final bool isFirstExperienceEntry;
+
+  static const mergeIdSkills = 'skills';
+  static const mergeIdExperienceFirst = 'experience_first';
 }
 
 /// Either a single full-prompt call or a list of section chunk jobs.
@@ -51,12 +60,14 @@ class ResumeChunker {
 
   static const int maxPromptTokens = 6000;
 
-  /// Default sections when the user does not select any / empty filter.
+  /// Tailor pipeline always optimizes Skills + first Experience entry only.
   static const List<String> defaultOptimizeSections = [
-    'Summary',
     'Skills',
     'Experience',
   ];
+
+  /// First role in Experience (OnlinePSBLoans) — used to locate the entry block.
+  static const firstExperienceMarker = 'OnlinePSBLoans';
 
   static int estimateTokens(String s) => (s.length / 4).ceil();
 
@@ -118,9 +129,140 @@ $custom$header
 SECTION HTML:
 $baseSectionHtml
 
-JOB DESCRIPTION:
+FORMATTED JOB DESCRIPTION (from step 1 — use only this for keywords):
 $jobDescription
 ''';
+  }
+
+  static String buildFirstExperienceEntryPrompt({
+    required String entryHtml,
+    required String jobDescription,
+    required String customInstructions,
+    String? headerContext,
+  }) {
+    final custom = customInstructions.trim().isNotEmpty
+        ? '\nCUSTOM (highest priority): ${customInstructions.trim()}\n'
+        : '';
+    final header = (headerContext != null && headerContext.trim().isNotEmpty)
+        ? '\nCANDIDATE HEADER (context only — do not output):\n'
+            '${headerContext.trim()}\n'
+        : '';
+    return '''
+Rewrite ONLY this first experience entry (Senior Mobile Application Developer — OnlinePSBLoans, Ahmedabad, Gujarat) for ATS + formatted JD fit.
+Rules: stay 100% truthful (no new employers, roles, degrees, or dates); weave JD keywords into bullets; keep HTML classes (entry, entry-header, entry-title, entry-date, entry-sub, ul/li).
+Return ONLY one <div class="entry">…</div> — no <h2>, no other jobs, no markdown, no commentary.
+$custom$header
+ENTRY HTML:
+$entryHtml
+
+FORMATTED JOB DESCRIPTION:
+$jobDescription
+''';
+  }
+
+  /// Split `<h2>Experience</h2>` block into first `<div class="entry">` vs the rest.
+  static ExperienceEntrySplit? splitFirstExperienceEntry(String experienceSectionHtml) {
+    final html = experienceSectionHtml.trim();
+    if (!RegExp(r'<h2\b[^>]*>\s*Experience\s*</h2>', caseSensitive: false)
+        .hasMatch(html)) {
+      return null;
+    }
+    final entryRe =
+        RegExp(r'<div\s+class="entry"[^>]*>', caseSensitive: false);
+    final first = entryRe.firstMatch(html);
+    if (first == null) return null;
+
+    final firstEntryHtml = _extractBalancedDiv(html, first.start);
+    final sectionOpening = html.substring(0, first.start);
+    final remainingEntriesHtml = html.substring(first.start + firstEntryHtml.length);
+    return ExperienceEntrySplit(
+      sectionOpening: sectionOpening,
+      firstEntryHtml: firstEntryHtml,
+      remainingEntriesHtml: remainingEntriesHtml,
+      fullSectionHtml: html,
+    );
+  }
+
+  /// Replace only the first experience entry; other roles stay unchanged.
+  static String mergeFirstExperienceEntry(
+    String experienceSectionHtml,
+    String newFirstEntryHtml,
+  ) {
+    final split = splitFirstExperienceEntry(experienceSectionHtml);
+    if (split == null) return experienceSectionHtml;
+    var entry = newFirstEntryHtml.trim();
+    if (!entry.toLowerCase().contains('class="entry"')) {
+      entry = '<div class="entry">$entry</div>';
+    }
+    return '${split.sectionOpening}$entry${split.remainingEntriesHtml}';
+  }
+
+  static String _extractBalancedDiv(String html, int start) {
+    var i = start;
+    var depth = 0;
+    while (i < html.length) {
+      if (i + 4 <= html.length &&
+          html.substring(i, i + 4).toLowerCase() == '<div') {
+        depth++;
+        i += 4;
+        continue;
+      }
+      if (i + 6 <= html.length &&
+          html.substring(i, i + 6).toLowerCase() == '</div>') {
+        depth--;
+        i += 6;
+        if (depth == 0) return html.substring(start, i);
+        continue;
+      }
+      i++;
+    }
+    throw StateError('Unbalanced <div> in experience section.');
+  }
+
+  /// Step 2 jobs only: Skills section + first Experience entry (OnlinePSBLoans).
+  static ResumeChunkPlan planPartialSections({
+    required String compactHtml,
+    required String jobDescription,
+    required List<String> sectionsToOptimize,
+    required String customInstructions,
+  }) {
+    final split = splitPageSections(compactHtml);
+    final jobs = <ResumeSectionChunkJob>[];
+
+    for (final section in split.sections) {
+      if (sectionMatchesFilter(section.heading, const ['Skills'])) {
+        jobs.add(ResumeSectionChunkJob(
+          heading: 'Skills',
+          sectionHtml: section.html,
+          mergeId: ResumeSectionChunkJob.mergeIdSkills,
+          prompt: buildSectionPrompt(
+            baseSectionHtml: section.html,
+            jobDescription: jobDescription,
+            sectionHeading: section.heading,
+            customInstructions: customInstructions,
+            headerContext: split.headerHtml,
+          ),
+        ));
+      }
+      if (sectionMatchesFilter(section.heading, const ['Experience'])) {
+        final expSplit = splitFirstExperienceEntry(section.html);
+        if (expSplit != null) {
+          jobs.add(ResumeSectionChunkJob(
+            heading: 'Experience (first role)',
+            sectionHtml: expSplit.firstEntryHtml,
+            mergeId: ResumeSectionChunkJob.mergeIdExperienceFirst,
+            isFirstExperienceEntry: true,
+            prompt: buildFirstExperienceEntryPrompt(
+              entryHtml: expSplit.firstEntryHtml,
+              jobDescription: jobDescription,
+              customInstructions: customInstructions,
+              headerContext: split.headerHtml,
+            ),
+          ));
+        }
+      }
+    }
+    return ResumeChunkPlan.sections(jobs);
   }
 
   /// When [sectionsToOptimize] is empty and chunking is needed, only the
@@ -131,6 +273,16 @@ $jobDescription
     required List<String> sectionsToOptimize,
     required String customInstructions,
   }) {
+    // Prefer partial-section pipeline; only fall back to full prompt if no
+    // matching sections exist in the HTML.
+    final partial = planPartialSections(
+      compactHtml: compactHtml,
+      jobDescription: jobDescription,
+      sectionsToOptimize: sectionsToOptimize,
+      customInstructions: customInstructions,
+    );
+    if (partial.sectionJobs.isNotEmpty) return partial;
+
     final effectiveSections = sectionsToOptimize.isEmpty
         ? defaultOptimizeSections
         : sectionsToOptimize;
@@ -140,29 +292,7 @@ $jobDescription
       effectiveSections,
       customInstructions,
     );
-    if (!needsChunking(fullPrompt)) {
-      return ResumeChunkPlan.full(fullPrompt);
-    }
-
-    final split = splitPageSections(compactHtml);
-    final jobs = <ResumeSectionChunkJob>[];
-    for (final section in split.sections) {
-      if (!sectionMatchesFilter(section.heading, effectiveSections)) {
-        continue;
-      }
-      jobs.add(ResumeSectionChunkJob(
-        heading: section.heading,
-        sectionHtml: section.html,
-        prompt: buildSectionPrompt(
-          baseSectionHtml: section.html,
-          jobDescription: jobDescription,
-          sectionHeading: section.heading,
-          customInstructions: customInstructions,
-          headerContext: split.headerHtml,
-        ),
-      ));
-    }
-    return ResumeChunkPlan.sections(jobs);
+    return ResumeChunkPlan.full(fullPrompt);
   }
 
   /// Empty [filter] → [defaultOptimizeSections].
@@ -210,4 +340,19 @@ $jobDescription
     }
     return html;
   }
+}
+
+/// First `<div class="entry">` within Experience vs remainder of that section.
+class ExperienceEntrySplit {
+  const ExperienceEntrySplit({
+    required this.sectionOpening,
+    required this.firstEntryHtml,
+    required this.remainingEntriesHtml,
+    required this.fullSectionHtml,
+  });
+
+  final String sectionOpening;
+  final String firstEntryHtml;
+  final String remainingEntriesHtml;
+  final String fullSectionHtml;
 }

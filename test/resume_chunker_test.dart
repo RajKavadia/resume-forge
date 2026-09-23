@@ -70,8 +70,8 @@ void main() {
   });
 
   group('section filter / planChunks', () {
-    test('sectionMatchesFilter empty uses default core sections', () {
-      expect(ResumeChunker.sectionMatchesFilter('Summary', const []), isTrue);
+    test('sectionMatchesFilter empty uses default Skills + Experience', () {
+      expect(ResumeChunker.sectionMatchesFilter('Summary', const []), isFalse);
       expect(ResumeChunker.sectionMatchesFilter('Skills', const []), isTrue);
       expect(ResumeChunker.sectionMatchesFilter('Experience', const []), isTrue);
       expect(ResumeChunker.sectionMatchesFilter('Education', const []), isFalse);
@@ -88,30 +88,23 @@ void main() {
       );
     });
 
-    test('planChunks returns full mode when prompt is under limit', () {
+    test('planChunks always uses Skills + first experience entry jobs', () {
       final plan = ResumeChunker.planChunks(
         compactHtml: samplePage,
         jobDescription: 'Flutter developer',
         sectionsToOptimize: const ['Summary'],
         customInstructions: '',
       );
-      expect(plan.useFullPrompt, isTrue);
-      expect(plan.fullPrompt, isNotNull);
-      expect(plan.sectionJobs, isEmpty);
-      expect(plan.fullPrompt!, contains('Summary'));
-      expect(plan.fullPrompt!, contains('Flutter developer'));
+      expect(plan.useFullPrompt, isFalse);
+      expect(plan.sectionJobs.map((j) => j.heading).toList(), [
+        'Skills',
+        'Experience (first role)',
+      ]);
+      expect(plan.sectionJobs.first.prompt, contains('Flutter developer'));
     });
 
-    test('planChunks filters section jobs when forced over limit', () {
-      // Inflate JD so buildResumePrompt exceeds 6000 tokens.
+    test('planChunks ignores Summary filter; still Skills + first role', () {
       final hugeJd = 'REQUIREMENT ${'Kotlin Flutter CI/CD ' * 2000}';
-      expect(
-        ResumeChunker.needsChunking(
-          buildResumePrompt(samplePage, hugeJd, const ['Summary', 'Skills'], ''),
-        ),
-        isTrue,
-      );
-
       final plan = ResumeChunker.planChunks(
         compactHtml: samplePage,
         jobDescription: hugeJd,
@@ -119,17 +112,23 @@ void main() {
         customInstructions: 'Keep metrics',
       );
       expect(plan.useFullPrompt, isFalse);
-      expect(plan.sectionJobs.map((j) => j.heading).toList(),
-          ['Summary', 'Skills']);
-      for (final job in plan.sectionJobs) {
-        expect(job.prompt.contains('<h2>${job.heading}</h2>'), isTrue);
-        expect(job.prompt.contains('Keep metrics'), isTrue);
-        expect(job.prompt.contains('return ONLY this section'), isTrue);
-        expect(job.sectionHtml.startsWith('<h2>'), isTrue);
-      }
+      expect(plan.sectionJobs.map((j) => j.heading).toList(), [
+        'Skills',
+        'Experience (first role)',
+      ]);
+      expect(plan.sectionJobs.first.prompt, contains('Keep metrics'));
+      expect(plan.sectionJobs.first.sectionHtml.startsWith('<h2>Skills</h2>'),
+          isTrue);
+      expect(
+        plan.sectionJobs.last.isFirstExperienceEntry,
+        isTrue,
+      );
+      expect(plan.sectionJobs.last.sectionHtml.contains('class="entry"'),
+          isTrue);
     });
 
-    test('planChunks with empty filter emits default core sections only', () {
+    test('planChunks with empty filter emits Skills + first experience entry',
+        () {
       final hugeJd = 'JD ${'x' * 30000}';
       final plan = ResumeChunker.planChunks(
         compactHtml: samplePage,
@@ -139,10 +138,52 @@ void main() {
       );
       expect(plan.useFullPrompt, isFalse);
       expect(plan.sectionJobs.map((j) => j.heading).toList(), [
-        'Summary',
         'Skills',
-        'Experience',
+        'Experience (first role)',
       ]);
+    });
+
+    test('planPartialSections returns Skills + first entry only', () {
+      final plan = ResumeChunker.planPartialSections(
+        compactHtml: samplePage,
+        jobDescription: 'Flutter CI/CD',
+        sectionsToOptimize: const ['Skills', 'Experience'],
+        customInstructions: '',
+      );
+      expect(plan.useFullPrompt, isFalse);
+      expect(plan.sectionJobs.length, 2);
+      expect(plan.sectionJobs[0].mergeId, ResumeSectionChunkJob.mergeIdSkills);
+      expect(
+        plan.sectionJobs[1].mergeId,
+        ResumeSectionChunkJob.mergeIdExperienceFirst,
+      );
+      expect(plan.sectionJobs[0].prompt, contains('FORMATTED JOB DESCRIPTION'));
+      expect(plan.sectionJobs[1].prompt, contains('OnlinePSBLoans'));
+      expect(plan.sectionJobs[1].prompt, isNot(contains('<h2>Education</h2>')));
+    });
+  });
+
+  group('first experience entry split/merge', () {
+    test('splitFirstExperienceEntry isolates first div.entry only', () {
+      final exp = ResumeChunker.splitPageSections(samplePage)
+          .sections
+          .firstWhere((s) => s.heading == 'Experience');
+      final split = ResumeChunker.splitFirstExperienceEntry(exp.html);
+      expect(split, isNotNull);
+      expect(split!.firstEntryHtml.contains('FinTech role'), isTrue);
+      expect(split.remainingEntriesHtml.trim(), isEmpty);
+    });
+
+    test('mergeFirstExperienceEntry replaces first entry only', () {
+      final exp = ResumeChunker.splitPageSections(samplePage)
+          .sections
+          .firstWhere((s) => s.heading == 'Experience');
+      const newEntry = '<div class="entry"><p>Updated PSB role</p></div>';
+      final merged =
+          ResumeChunker.mergeFirstExperienceEntry(exp.html, newEntry);
+      expect(merged.contains('Updated PSB role'), isTrue);
+      expect(merged.contains('FinTech role'), isFalse);
+      expect(merged.startsWith('<h2>Experience</h2>'), isTrue);
     });
   });
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:resumetailor/services/deep_link_service.dart';
@@ -66,8 +67,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   StreamSubscription? _deepLinkSub;
   final List<_CapturedEntry> _capturedEntries = <_CapturedEntry>[];
   final _customInstructionsController = TextEditingController();
+  final _jobDescriptionController = TextEditingController();
   List<String> _sectionsToOptimize = [
-    'Summary',
     'Skills',
     'Experience',
   ];
@@ -92,49 +93,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _loadSavedApiKey();
     _checkAccessibility();
     _initDeepLinks();
-    try {
-      _captureSub = ScreenCaptureService.events().listen((event) {
-        final type = event['type'];
-        if (type == 'captured_text') {
-          final text = (event['text'] as String?) ?? '';
-          if (text.trim().isEmpty) return;
-          if (!mounted) return;
-          setState(() {
-            _capturedEntries.insert(
-              0,
-              _CapturedEntry(timestamp: DateTime.now(), text: text),
+    if (!kIsWeb) {
+      try {
+        _captureSub = ScreenCaptureService.events().listen(
+          (event) {
+            final type = event['type'];
+            if (type == 'captured_text') {
+              final text = (event['text'] as String?) ?? '';
+              if (text.trim().isEmpty) return;
+              if (!mounted) return;
+              setState(() {
+                _capturedEntries.insert(
+                  0,
+                  _CapturedEntry(timestamp: DateTime.now(), text: text),
+                );
+              });
+              if (_autoGenerateOnCapture &&
+                  !_autoGenerateTriggered &&
+                  !_isLoading &&
+                  _apiKeyController.text.trim().isNotEmpty) {
+                _autoGenerateTriggered = true;
+                ScreenCaptureService.updateStatus(
+                  'Generating tailored resume and preparing PDF',
+                );
+                _handleGeneratedResumeFromCapture(text);
+              }
+            } else if (type == 'status') {
+              final message = (event['message'] as String?) ?? '';
+              if (!mounted || message.trim().isEmpty) return;
+              if (message.contains('alive') || message.contains('heartbeat')) {
+                return;
+              }
+              developer.log(
+                'capture status',
+                name: 'ResumeForge.Home',
+                error: {'message': message},
+              );
+              setState(() {
+                _importStatus = message;
+              });
+            }
+          },
+          onError: (Object e) {
+            developer.log(
+              'capture events stream error',
+              name: 'ResumeForge.Home',
+              error: e,
             );
-          });
-          if (_autoGenerateOnCapture &&
-              !_autoGenerateTriggered &&
-              !_isLoading &&
-              _apiKeyController.text.trim().isNotEmpty) {
-            _autoGenerateTriggered = true;
-            ScreenCaptureService.updateStatus(
-              'Generating tailored resume and preparing PDF',
-            );
-            _handleGeneratedResumeFromCapture(text);
-          }
-        } else if (type == 'status') {
-          final message = (event['message'] as String?) ?? '';
-          if (!mounted || message.trim().isEmpty) return;
-          // Skip heartbeat noise: rebuilding the whole page every 10s while
-          // typing causes keyboard open/animation jank.
-          if (message.contains('alive') || message.contains('heartbeat')) {
-            return;
-          }
-          developer.log(
-            'capture status',
-            name: 'ResumeForge.Home',
-            error: {'message': message},
-          );
-          setState(() {
-            _importStatus = message;
-          });
-        }
-      });
-    } catch (_) {
-      // Ignore capture channel failures in tests and on unsupported platforms.
+          },
+        );
+      } catch (_) {
+        // Ignore capture channel failures in tests and on unsupported platforms.
+      }
     }
   }
 
@@ -178,22 +188,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _endpointController.dispose();
     _modelController.dispose();
     _customInstructionsController.dispose();
+    _jobDescriptionController.dispose();
     _apiKeyFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _onTailorPressed({String? jobDescription}) async {
     final apiKey = _apiKeyController.text.trim();
-    final jd =
-        (jobDescription ??
-                (_capturedEntries.isEmpty ? '' : _capturedEntries.first.text))
-            .trim();
+    final pasted = _jobDescriptionController.text.trim();
+    final captured =
+        _capturedEntries.isEmpty ? '' : _capturedEntries.first.text.trim();
+    final jd = (jobDescription ?? (pasted.isNotEmpty ? pasted : captured)).trim();
     if (apiKey.isEmpty) {
       setState(() => _errorMessage = 'Please enter your NVIDIA API key.');
       return;
     }
     if (jd.isEmpty) {
-      setState(() => _errorMessage = 'Please capture text first.');
+      setState(
+        () => _errorMessage = kIsWeb
+            ? 'Please paste a job description first.'
+            : 'Please paste a job description or capture text first.',
+      );
       return;
     }
 
@@ -383,6 +398,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _updateCaptureStatus(String message) async {
+    if (!mounted) return;
+    setState(() => _importStatus = message);
+    if (kIsWeb) return;
     try {
       await ScreenCaptureService.updateStatus(message);
     } catch (e) {
@@ -410,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   children: [
                     _buildHeader(),
                     const SizedBox(height: 20),
-                    if (!_accessibilityEnabled) ...[
+                    if (!kIsWeb && !_accessibilityEnabled) ...[
                       _buildAccessibilityBanner(),
                       const SizedBox(height: 10),
                     ],
@@ -426,14 +444,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     const SizedBox(height: 12),
                     _buildCustomInstructionsField(),
                     const SizedBox(height: 12),
-                    _buildCaptureControls(),
+                    _buildJobDescriptionField(),
+                    if (!kIsWeb) ...[
+                      const SizedBox(height: 12),
+                      _buildCaptureControls(),
+                    ],
                     const SizedBox(height: 12),
                     if (_errorMessage != null) ...[
                       _buildError(),
                       const SizedBox(height: 10),
                     ],
-                    _buildCapturedTextPanel(),
-                    const SizedBox(height: 12),
+                    if (!kIsWeb) ...[
+                      _buildCapturedTextPanel(),
+                      const SizedBox(height: 12),
+                    ],
                     _buildTailorButton(),
                   ],
                 ),
@@ -981,14 +1005,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildSectionSelector() {
-    final availableSections = [
-      'Summary',
-      'Skills',
-      'Experience',
-      'Projects',
-      'Open Source',
-      'Education',
-    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -997,7 +1013,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const Icon(Icons.tune_rounded, color: Color(0xFF6C63FF), size: 16),
             const SizedBox(width: 6),
             const Text(
-              'Sections to Optimize',
+              'Tailor scope (fixed)',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 13,
@@ -1007,42 +1023,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: availableSections.map((section) {
-            final isSelected = _sectionsToOptimize.contains(section);
-            return FilterChip(
-              label: Text(section),
-              selected: isSelected,
-              onSelected: (bool selected) {
-                setState(() {
-                  if (selected) {
-                    _sectionsToOptimize.add(section);
-                  } else {
-                    _sectionsToOptimize.remove(section);
-                  }
-                });
-              },
-              selectedColor: const Color(0xFF6C63FF).withAlpha(64),
-              checkmarkColor: const Color(0xFF6C63FF),
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-              backgroundColor: const Color(0xFF1A1A24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: isSelected
-                      ? const Color(0xFF6C63FF)
-                      : const Color(0xFF2A2A38),
-                ),
-              ),
-            );
-          }).toList(),
+        const SizedBox(height: 8),
+        Text(
+          '1. AI formats the job description only.\n'
+          '2. Then updates Skills and the first role only:\n'
+          '   Senior Mobile Application Developer — OnlinePSBLoans, Ahmedabad.',
+          style: TextStyle(
+            color: Colors.white.withAlpha(200),
+            fontSize: 12,
+            height: 1.45,
+          ),
         ),
       ],
     );
@@ -1102,6 +1092,80 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SizedBox(height: 6),
         Text('Race mode: primary + fastest fallback run in parallel, first success wins. Local Ollama = single attempt, ~1-2s.', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 11)),
       ]),
+    );
+  }
+
+  Widget _buildJobDescriptionField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.description_outlined,
+              color: Color(0xFF6C63FF),
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            const Expanded(
+              child: Text(
+                'Job Description',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+            if (_jobDescriptionController.text.trim().isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  _jobDescriptionController.clear();
+                  setState(() {});
+                },
+                child: Text(
+                  'Clear',
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(160),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A24),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF2A2A38)),
+          ),
+          child: TextField(
+            controller: _jobDescriptionController,
+            minLines: kIsWeb ? 8 : 5,
+            maxLines: 16,
+            onChanged: (_) => setState(() {}),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13.5,
+              height: 1.55,
+            ),
+            decoration: InputDecoration(
+              hintText: kIsWeb
+                  ? 'Paste the LinkedIn / job posting text here…'
+                  : 'Paste job description here (or use screen capture)…',
+              hintStyle: TextStyle(
+                color: Colors.white.withAlpha(77),
+                fontSize: 13.5,
+                height: 1.55,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

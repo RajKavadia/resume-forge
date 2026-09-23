@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 
 class ScreenCaptureService {
@@ -11,6 +12,9 @@ class ScreenCaptureService {
   static Stream<Map<dynamic, dynamic>>? _stream;
 
   static Stream<Map<dynamic, dynamic>> events() {
+    if (kIsWeb) {
+      return const Stream.empty();
+    }
     _stream ??= _events
         .receiveBroadcastStream()
         .map((e) => (e as Map<dynamic, dynamic>));

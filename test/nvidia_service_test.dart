@@ -4,7 +4,7 @@ import 'package:resumetailor/services/nvidia_service.dart';
 const _base = '''
 <!DOCTYPE html><html><head><style>.page{}</style></head>
 <body><div class="page"><h2>Summary</h2><p>old summary text here for length padding xx</p>
-<h2>Experience</h2><p>old experience text here for length padding xx</p>
+<h2>Experience</h2><div class="entry"><p class="entry-sub">OnlinePSBLoans - Ahmedabad, Gujarat</p><ul><li>old experience text here for length padding xx</li></ul></div>
 <h2>Skills</h2><p>Dart</p></div></body></html>
 ''';
 
@@ -29,7 +29,10 @@ void main() {
       apiKey: 'test-key',
       baseHtmlOverride: _base,
       generateOverride: (prompt) async {
-        expect(prompt, contains('Summary'));
+        expect(prompt, contains('OnlinePSBLoans'));
+        expect(prompt, contains('Skills'));
+        expect(prompt, contains('FORMATTED JOB DESCRIPTION'));
+        expect(prompt, contains('some JD'));
         return '```html\n$page\n```';
       },
     );
@@ -49,6 +52,13 @@ void main() {
       ),
       throwsA(isA<Exception>()),
     );
+  });
+
+  test('normalizeExperienceEntryHtml keeps single entry div', () {
+    const raw = '<div class="entry"><p class="entry-sub">OnlinePSBLoans</p></div>';
+    final out = NvidiaService.normalizeExperienceEntryHtml(raw);
+    expect(out.toLowerCase(), contains('class="entry"'));
+    expect(out, contains('OnlinePSBLoans'));
   });
 
   test('normalizeSectionHtml extracts matching h2 section', () {

@@ -20,13 +20,16 @@ class NvidiaService {
   // --- Speed tuning ---
   static const maxJdChars = 4000;
   static const maxTokens = 2500;
-  static const sectionConcurrency = 3;
+  /// Sequential section calls (JD compress first, then one section at a time).
+  static const sectionConcurrency = 1;
   static const perRequestTimeout = Duration(seconds: 60);
 
   static const _pageSystem =
       'Return only a complete <div class="page">...</div> resume fragment. No doctype, style, markdown, or commentary.';
   static const _sectionSystem =
       'Return only one resume section starting with <h2>…</h2>. No page wrapper, doctype, style, markdown, or commentary.';
+  static const _entrySystem =
+      'Return only one <div class="entry">…</div> experience block. No h2, page wrapper, markdown, or commentary.';
 
   static const _modelFallbacks = [
     'openai/gpt-oss-20b',
@@ -40,8 +43,8 @@ class NvidiaService {
   static final Map<int, String> _briefCache = <int, String>{};
   static const _cacheMaxEntries = 20;
   static const _briefCacheMaxEntries = 40;
-  // Bump when optimize pipeline (1–7) changes outputs.
-  static const _cacheVersion = 6;
+  // Bump when JD→partial-section sequential pipeline changes.
+  static const _cacheVersion = 8;
 
   static Future<String> tailorResume(
     String jobDescription, {
@@ -79,12 +82,14 @@ class NvidiaService {
     if (generateOverride != null) {
       jd = trimJd(screenDump);
     } else {
+      // Step 1 (always): optimize / compress the job description first.
       jd = await _resolveJobBrief(
         screenDump: screenDump,
         keys: keys,
         endpoint: effEndpoint,
         tailorModel: primary,
         onProgress: onProgress,
+        forceCompress: true,
       );
     }
     if (jd.isEmpty) throw Exception('Job description is empty after trimming.');
@@ -92,19 +97,20 @@ class NvidiaService {
     final baseHtml = baseHtmlOverride ??
         await rootBundle.loadString('assets/Raj_Kavadia_Resume_ATS.html');
     final compactBase = compactHtml(baseHtml);
-    final plan = ResumeChunker.planChunks(
+    // Step 2+: partial Skills/Experience HTML only — never full-page generation.
+    final plan = ResumeChunker.planPartialSections(
       compactHtml: compactBase,
       jobDescription: jd,
       sectionsToOptimize: effectiveSections,
       customInstructions: customInstructions,
     );
-    final prompt = plan.useFullPrompt
-        ? plan.fullPrompt!
+    final promptForOverride = plan.sectionJobs.isNotEmpty
+        ? plan.sectionJobs.map((j) => j.prompt).join('\n\n---\n\n')
         : buildResumePrompt(
             compactBase, jd, effectiveSections, customInstructions);
 
     if (generateOverride != null) {
-      final raw2 = await generateOverride(prompt);
+      final raw2 = await generateOverride(promptForOverride);
       developer.log('NVIDIA returned response',
           name: 'ResumeForge.NvidiaService',
           error: {'responseLength': raw2.length});
@@ -135,7 +141,6 @@ class NvidiaService {
     Object? lastError;
     for (final model in modelChain) {
       try {
-        onProgress?.call('Tailoring resume');
         final rotator = NvidiaApiKeyRotator(keys);
         final pageFragment = await _generatePlan(
           rotator: rotator,
@@ -147,6 +152,7 @@ class NvidiaService {
           customInstructions: customInstructions,
           endpoint: effEndpoint,
           primaryModel: model,
+          onProgress: onProgress,
         );
         final out = finalizeHtml(clean(pageFragment), baseHtml);
         _putCache(cacheKey, out);
@@ -156,6 +162,8 @@ class NvidiaService {
         final msg = e.toString().toLowerCase();
         if (msg.contains('429') ||
             msg.contains('413') ||
+            msg.contains('404') ||
+            msg.contains('not found') ||
             msg.contains('rate') ||
             msg.contains('resource') ||
             msg.contains('exhausted') ||
@@ -165,9 +173,9 @@ class NvidiaService {
           // Try next model only if more remain; else surface friendly error.
           if (model == modelChain.last) {
             throw Exception(
-                'Provider quota/size limit hit. Add another API key, deselect sections, or use Ollama.');
+                'Provider quota/model unavailable. Try another model, add an API key, or use Ollama.');
           }
-          developer.log('Model $model quota/size; trying next',
+          developer.log('Model $model unavailable; trying next',
               name: 'ResumeForge.NvidiaService', error: e);
           continue;
         }
@@ -181,13 +189,14 @@ class NvidiaService {
         : Exception(lastError?.toString() ?? 'All models failed.');
   }
 
-  /// Skip-small / cache / fast-model compress → token-light JOB BRIEF.
+  /// Step 1: screen dump → keywords / responsibilities / key points brief.
   static Future<String> _resolveJobBrief({
     required String screenDump,
     required List<String> keys,
     required String endpoint,
     required String tailorModel,
     void Function(String stage)? onProgress,
+    bool forceCompress = false,
   }) async {
     final briefKey = Object.hash(_cacheVersion, 'brief', screenDump);
     final hit = _briefCache[briefKey];
@@ -195,19 +204,19 @@ class NvidiaService {
       developer.log('JD brief cache hit',
           name: 'ResumeForge.NvidiaService',
           error: {'briefChars': hit.length});
+      onProgress?.call('Using cached formatted job description');
       return hit;
     }
 
-    if (JdCompressor.shouldSkipCompress(screenDump)) {
-      onProgress?.call('Screen dump already compact');
+    if (!forceCompress && JdCompressor.shouldSkipCompress(screenDump)) {
+      onProgress?.call('Job description already compact');
       final brief = trimJd(screenDump);
       _putBriefCache(briefKey, brief);
       return brief;
     }
 
-    onProgress?.call('Compressing screen dump');
-    final compressModelId =
-        _isNvidiaEndpoint(endpoint) ? compressModel : tailorModel;
+    onProgress?.call('Formatting job description (step 1 of 2)');
+    final compressModelId = compressModel;
     final rotator = NvidiaApiKeyRotator(keys);
     final brief = await _compressScreenDump(
       screenDump: screenDump,
@@ -255,7 +264,7 @@ class NvidiaService {
     }
   }
 
-  /// Full-prompt stream, or parallel per-section streamed chunks.
+  /// Partial-section stream (Skills/Experience). Full page only if no section jobs.
   static Future<String> _generatePlan({
     required NvidiaApiKeyRotator rotator,
     required List<String> keys,
@@ -266,8 +275,10 @@ class NvidiaService {
     required String customInstructions,
     required String endpoint,
     required String primaryModel,
+    void Function(String stage)? onProgress,
   }) async {
     if (plan.useFullPrompt || plan.sectionJobs.isEmpty) {
+      onProgress?.call('Tailoring resume (full page fallback)');
       final full = plan.fullPrompt ??
           buildResumePrompt(
             compactBase,
@@ -293,7 +304,7 @@ class NvidiaService {
     }
 
     final headings = plan.sectionJobs.map((j) => j.heading).toList();
-    developer.log('tailor section-chunked parallel',
+    developer.log('tailor partial sections sequential',
         name: 'ResumeForge.NvidiaService',
         error: {
           'sections': headings,
@@ -302,57 +313,102 @@ class NvidiaService {
         });
 
     final split = ResumeChunker.splitPageSections(compactBase);
-    final rewritten = await _runSectionJobsParallel(
+    onProgress?.call('Tailoring resume (step 2 of 2)');
+    final rewritten = await _runSectionJobsSequential(
       keys: keys,
       jobs: plan.sectionJobs,
       endpoint: endpoint,
       model: primaryModel,
+      onProgress: onProgress,
     );
-    final sectionHtmls = [
-      for (final s in split.sections) rewritten[s.heading] ?? s.html,
-    ];
+    final sectionHtmls = <String>[];
+    for (final s in split.sections) {
+      var html = s.html;
+      if (ResumeChunker.sectionMatchesFilter(s.heading, const ['Skills'])) {
+        final skills =
+            rewritten[ResumeSectionChunkJob.mergeIdSkills];
+        if (skills != null) html = skills;
+      }
+      if (ResumeChunker.sectionMatchesFilter(s.heading, const ['Experience'])) {
+        final firstEntry =
+            rewritten[ResumeSectionChunkJob.mergeIdExperienceFirst];
+        if (firstEntry != null) {
+          html = ResumeChunker.mergeFirstExperienceEntry(html, firstEntry);
+        }
+      }
+      sectionHtmls.add(html);
+    }
     return ResumeChunker.mergeSections(split.headerHtml, sectionHtmls);
   }
 
-  /// Run section jobs in batches of [sectionConcurrency] (independent key rotators).
+  /// One section at a time after JD compress. Failed section keeps original HTML.
+  static Future<Map<String, String>> _runSectionJobsSequential({
+    required List<String> keys,
+    required List<ResumeSectionChunkJob> jobs,
+    required String endpoint,
+    required String model,
+    void Function(String stage)? onProgress,
+  }) async {
+    final rewritten = <String, String>{};
+    var failures = 0;
+    for (var i = 0; i < jobs.length; i++) {
+      final job = jobs[i];
+      onProgress?.call('Tailoring ${job.heading} (${i + 1}/${jobs.length})');
+      final rotator = NvidiaApiKeyRotator(
+        keys,
+        startingIndex: i % keys.length,
+      );
+      try {
+        final raw = await rotator.runWithRotation(
+          (key) => _complete(
+            key,
+            job.prompt,
+            endpoint: endpoint,
+            model: model,
+            systemContent:
+                job.isFirstExperienceEntry ? _entrySystem : _sectionSystem,
+          ),
+        );
+        rewritten[job.mergeId] = job.isFirstExperienceEntry
+            ? normalizeExperienceEntryHtml(clean(raw))
+            : normalizeSectionHtml(clean(raw), job.heading);
+      } catch (e) {
+        failures++;
+        developer.log(
+          'Section "${job.heading}" failed; keeping original',
+          name: 'ResumeForge.NvidiaService',
+          error: e,
+        );
+      }
+    }
+    if (rewritten.isEmpty && jobs.isNotEmpty) {
+      throw Exception(
+        'All section tailor requests failed (model unavailable or quota). '
+        'Try another model or API key.',
+      );
+    }
+    if (failures > 0) {
+      developer.log(
+        'Partial section tailor: $failures failed, ${rewritten.length} ok',
+        name: 'ResumeForge.NvidiaService',
+      );
+    }
+    return rewritten;
+  }
+
+  /// Kept for tests / callers that batch; prefers sequential via [sectionConcurrency]=1.
   static Future<Map<String, String>> _runSectionJobsParallel({
     required List<String> keys,
     required List<ResumeSectionChunkJob> jobs,
     required String endpoint,
     required String model,
-  }) async {
-    final rewritten = <String, String>{};
-    for (var i = 0; i < jobs.length; i += sectionConcurrency) {
-      final batch = jobs.skip(i).take(sectionConcurrency).toList();
-      final parts = await Future.wait([
-        for (var b = 0; b < batch.length; b++)
-          () async {
-            final job = batch[b];
-            final rotator = NvidiaApiKeyRotator(
-              keys,
-              startingIndex: (i + b) % keys.length,
-            );
-            final raw = await rotator.runWithRotation(
-              (key) => _complete(
-                key,
-                job.prompt,
-                endpoint: endpoint,
-                model: model,
-                systemContent: _sectionSystem,
-              ),
-            );
-            return MapEntry(
-              job.heading,
-              normalizeSectionHtml(clean(raw), job.heading),
-            );
-          }(),
-      ]);
-      for (final e in parts) {
-        rewritten[e.key] = e.value;
-      }
-    }
-    return rewritten;
-  }
+  }) =>
+      _runSectionJobsSequential(
+        keys: keys,
+        jobs: jobs,
+        endpoint: endpoint,
+        model: model,
+      );
 
   static Future<String> _complete(
     String apiKey,
@@ -396,6 +452,25 @@ class NvidiaService {
   }
 
   /// Pull the matching `<h2>` section from a model reply (page or bare fragment).
+  @visibleForTesting
+  static String normalizeExperienceEntryHtml(String raw) {
+    final cleaned = clean(raw).trim();
+    if (cleaned.isEmpty) {
+      throw Exception('Model returned empty HTML for experience entry.');
+    }
+    var body = cleaned;
+    if (!RegExp(r'<div\s+class="entry"', caseSensitive: false).hasMatch(body)) {
+      body = '<div class="entry">$body</div>';
+    }
+    final split = ResumeChunker.splitFirstExperienceEntry(
+      '<h2>Experience</h2>$body',
+    );
+    if (split != null && split.firstEntryHtml.trim().isNotEmpty) {
+      return split.firstEntryHtml;
+    }
+    throw Exception('Model returned incomplete experience entry HTML.');
+  }
+
   @visibleForTesting
   static String normalizeSectionHtml(String raw, String heading) {
     final cleaned = clean(raw).trim();

@@ -40,8 +40,21 @@ class ScreenCaptureAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {
-        lastRoot = rootInActiveWindow ?: lastRoot
-        Log.d(tag, "onAccessibilityEvent type=${event?.eventType} package=${event?.packageName}")
+        // Hot path: this fires dozens/sec while typing (TYPE_WINDOW_CONTENT_CHANGED).
+        // Old code called rootInActiveWindow + Log.d on EVERY event, even from our
+        // own app — that IPC + logging on the main thread janks keyboard open.
+        val pkg = event?.packageName?.toString()
+        // Ignore our own app to avoid a feedback loop while typing in TextFields.
+        if (pkg != null && pkg == packageName) return
+        // Content-changed is too chatty; capture reads the tree lazily when asked.
+        if (event?.eventType == android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return
+        // Cache root only on window-state changes (cheap, infrequent).
+        if (event?.eventType == android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            try {
+                lastRoot?.recycle()
+            } catch (_: Exception) { }
+            lastRoot = try { rootInActiveWindow } catch (_: Exception) { lastRoot }
+        }
     }
 
     override fun onInterrupt() {

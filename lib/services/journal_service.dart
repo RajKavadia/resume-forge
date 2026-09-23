@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:resumetailor/models/journal_entry.dart';
+import 'package:resumetailor/utils/html_download.dart' as html_download;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class JournalService {
@@ -77,7 +78,7 @@ class JournalService {
     required DateTime createdAt,
   }) async {
     if (kIsWeb) {
-      throw UnsupportedError('Journal download is not supported on web.');
+      return html_download.downloadHtmlFile(html: html, fileName: fileName);
     }
     final result = await _downloads.invokeMethod<String>(
       'saveHtml',

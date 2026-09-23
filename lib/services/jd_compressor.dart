@@ -63,7 +63,7 @@ class JdCompressor {
   static const skipCompressMaxTokens = 1500;
 
   static const systemPrompt =
-      'Extract a compact job brief. Return ONLY the labeled fields. No markdown fences, no commentary.';
+      'Format the job posting into the labeled fields below. Return ONLY that formatted job description. No markdown fences, no commentary.';
 
   static int estimateTokens(String s) => (s.length / 4).ceil();
 
@@ -73,7 +73,7 @@ class JdCompressor {
   static String buildCompressPrompt(String screenDump) {
     final dump = trimScreenDump(screenDump);
     return '''
-Compress this job-posting / accessibility screen dump for resume tailoring.
+Format this job-posting / accessibility screen dump into a clean job description for resume tailoring (step 1 — do not rewrite the resume).
 Strip UI chrome, ads, nav, cookies, "easy apply", salary widgets, and duplicate lines.
 Extract ONLY:
 1) keywords / skills / tools / stack (verbatim JD phrasing where possible)
